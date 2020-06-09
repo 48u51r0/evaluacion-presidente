@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1591603677970.000,
+    "dirty" : false,
+    "encoding" : "WINDOWS-1252",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "206B4140",
+    "lastKnownWriteTime" : 1591657319,
+    "last_content_update" : 1591657319750,
+    "path" : "C:/Users/natal/Desktop/Paper_08042020/Scripts/ANOVAS.R",
+    "project_path" : "Scripts/ANOVAS.R",
+    "properties" : {
+        "cursorPosition" : "241,0",
+        "scrollLine" : "220"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

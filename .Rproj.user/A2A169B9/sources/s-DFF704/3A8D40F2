@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1591653752646.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "3A8D40F2",
+    "lastKnownWriteTime" : 32370056113422339,
+    "last_content_update" : 1591653752646,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "50DEFA1F",
+        "caption" : "mainfx_ideologia_adj",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=mainfx_ideologia_adj&cache_key=50DEFA1F",
+        "displayedObservations" : "45",
+        "environment" : "",
+        "object" : "mainfx_ideologia_adj",
+        "preview" : "0",
+        "totalObservations" : "45",
+        "variables" : "6"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
