@@ -12,6 +12,7 @@ install_pack(packages)
 # resolvemos los conflictos de funciones entre dplyr y MASS
 conflict_prefer("select", "dplyr")
 conflict_prefer("filter", "dplyr")
+rm("packages")
 
 # --------------Importar datos-------------------------------------
 
