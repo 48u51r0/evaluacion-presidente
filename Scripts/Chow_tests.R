@@ -4,6 +4,8 @@ df_3269 <- read_rds("df_3269.rds")
 df_3271 <- read_rds("df_3271.rds")
 df_3273 <- read_rds("df_3273.rds")
 df_3277 <- read_rds("df_3277.rds")
+df_3279 <- read_rds("df_3279.rds")
+df_3281 <- read_rds("df_3281.rds")
 
 #-----------------Function to run Chow tests (Lee, 2008)--------------------------------
 
@@ -86,44 +88,65 @@ ideo_restr <- "eval_pres ~ ideolpers_GMC + ideol_2 + ideol_3 +
 man+higher_educ+welloff"
 
 chow_dummy <- chow <- function(pre, post, formula, significance = .05){
+  k_chow <- read_rds("k_chow.rds")
   pooled <- bind_rows(pre, post) %>% 
     mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
                                   Periodo == max(Periodo) ~ 1) %>% 
              factor()
-           )
-  reg <- robustbase::lmrob(formula = formula, data = pooled,weights = PESO)
-  K <- cbind(1, diag(coef(reg))-1)
-  rownames(K) <- names(coef(reg))
-}
-""""""""""""""""""""""""
-la matriz K para chow debe ser: una fila y una columna por cada parametro incluido el intercepto
-Despues nos quedamos solo con las filas de los parámetros sobre los que queremos hacer una inferencia
-En la columna del parametro sobre el que hacemos inferencia y su fila correspondiente va un 1 y los
-demás elementos va un cero.
-Podemos hacer un Test F. (Chow)
-
-pre <- df_3269
-post <- df_3271
-formula <- ideo_unrestr
-pooled <- bind_rows(pre, post) %>% 
-  mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
-                                Periodo == max(Periodo) ~ 1) %>% 
-           factor()
+    )
+  linear <- lm(formula, data = pooled, weights = PESO)
+  robust <- robustbase::lmrob(formula, data = pooled, weights = PESO)
+  K <- cbind(diag(length(coef(robust))))
+  rownames(K) <- names(coef(robust))
+  aux_linear_chow <- glht(linear, linfct = k_chow, vcov =sandwich)
+  aux_linear_completo <- glht(linear, linfct = K, vcov= sandwich)
+  aux_robust_chow <- glht(robust, linfct = k_chow)
+  aux_robust_completo <- glht(robust, linfct = K)
+  linear_chow <- summary(aux_linear_chow, test = Ftest())
+  robust_chow <- summary(aux_robust_chow, test =Ftest())
+  linear_completo <- summary(aux_linear_completo)
+  robust_completo <- summary(aux_robust_completo)
+  chow <- if_else(linear_chow$test$fstat > qf(1-significance, 
+                                              linear_chow$test$df[1], 
+                                              linear_chow$test$df[2]), 
+                  paste0("Hay discontinuidad en la regresión al ", significance), 
+                  paste0("No hay discontinuidad en la regresión al ", significance)
   )
-reg <- robustbase::lmrob(formula = formula, data = pooled,weights = PESO)
-K <- cbind(diag(length(coef(reg))))
-rownames(K) <- names(coef(reg))
-aux_linear <- summary(linear <- lm(formula, data = pooled, weights = PESO))
-aux_robust <- summary(robust <- robustbase::lmrob(formula, data = pooled, weights = PESO))
-linear_glht <- glht(linear, linfct = k_chow)
-robust_glht <- glht(robust, linfct = k_chow)
-aux_linear_glht <- summary(linear_glht, test = Ftest())
-aux_robust_glht <- summary(robust_glht, test =Ftest())
-
-aux_linear_glht$test$fstat
-aux_linear_glht$test$pvalue
-
-#valor critico de F
-qf(c(1-.05, 1-.01, 1-.001), aux_linear_glht$test$df[1], aux_linear_glht$test$df[2])
-
-También podemos hacer una maxi T con todos los parámetros = 0 para estimar. este test maxi-t
+  salida <- list(discontinuidad = chow, 
+                 MM = broom::tidy(robust_completo )%>% 
+                   inner_join(broom::tidy(confint(aux_robust_completo))) %>% 
+                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
+                            as.numeric() %>% 
+                            round(3)
+                          ) %>% 
+                   select(Parameters = lhs, Beta = estimate, Lower = conf.low, 
+                          Upper = conf.high, 'P value' = p.value)
+  )
+  return(salida)
+}
+# Aplicamos chow_dummy a cada transición de periodo
+aux1 <- chow_dummy(df_3269, df_3271, formula = ideo_unrestr)
+aux2 <- chow_dummy(df_3271, df_3273, formula = ideo_unrestr)
+aux3 <- chow_dummy(df_3273, df_3277, formula = ideo_unrestr)
+aux4 <- chow_dummy(df_3277, df_3279, formula = ideo_unrestr)
+aux5 <- chow_dummy(df_3279, df_3281, formula = ideo_unrestr)
+# Añadimos una variable para identificar el periodo
+aux1$MM <- within(aux1$MM, {periodo <- 1})
+aux2$MM <- within(aux2$MM, {periodo <- 2})
+aux3$MM <- within(aux3$MM, {periodo <- 3})
+aux4$MM <- within(aux4$MM, {periodo <- 4})
+aux5$MM <- within(aux5$MM, {periodo <- 5})
+#fusionamos
+bind_rows(aux1$MM, aux2$MM, aux3$MM, aux4$MM, aux5$MM) %>% 
+  mutate(periodo = factor(periodo, labels = c("Postelectoral-Enero",
+                                              "Enero-Febrero",
+                                              "Febrero-Marzo",
+                                              "Marzo-Abril",
+                                              "Abril-Mayo"))) %>% 
+  ggplot(aes(x = periodo, y = Beta, group = Parameters)) + 
+  geom_line() + 
+  geom_point() + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper, width = .1)) + 
+  geom_hline(yintercept = 0, colour = "red", linetype = "dashed") +
+  geom_vline(xintercept = 3.5, colour = "darkblue", linetype = "dotted") +
+  facet_wrap(~Parameters, scales = "free")
