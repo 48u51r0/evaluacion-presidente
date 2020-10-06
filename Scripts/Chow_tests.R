@@ -15,6 +15,7 @@ mod0 <- "eval_pres~man+higher_educ+welloff"
 mod1 <- "eval_pres~ideol_GMC + man+higher_educ+welloff"
 mod2 <- "eval_pres~ideol_GMC + ideol_2  + man+higher_educ+welloff"
 mod3 <- "eval_pres~ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+
 #function to apply the likelihood ratio test
 lrt <- function(data = data){
   models <- list("mod0" = mod0 ,"mod1" = mod1,"mod2"= mod2, "mod3"=mod3) %>% 
@@ -39,10 +40,11 @@ lrt(df_3277)
 lrt(df_3279)
 lrt(df_3281)
 #Se ha probado con todos los data_Sets por separado, 
-#para todos los casos es modelo ampliado es mejor que el restringido.
+#para todos los casos el modelo ampliado es mejor que el restringido.
 #las excepciones han sido a partir del confinamiento ya que el modelo cuadrático
 #era peor que el model lineal. Sin embargo, como el cúbico era mejor que el lineal
 #usaré término cúbico (ideo_3)
+rm(list = c("mod0", "mod1", "mod2"))
 
 #-----------------Function to run Chow tests (Lee, 2008)--------------------------------
 
@@ -69,7 +71,7 @@ chow <- function(pre, post, formula, significance = .05){
   aux <- data.frame(var = c(models$pre$residuals, models$post$residuals),
                     group = c(rep(0, nobs(models$pre)), rep(1, nobs(models$post))) %>% 
                       factor()
-                    )
+  )
   levene <- car::leveneTest(aux$var, aux$group, center = median)
   fk <- fligner.test(aux$var, aux$group)
   if(levene$`Pr(>F)`[1] < significance){
@@ -132,19 +134,25 @@ df_pre <- bind_rows(df_3269, df_3271, df_3273, df_3277)
 df_post <- df_3279
 chow(pre = df_pre, post = df_post, formula = mod3, significance = 0.01)#CAmbio. Dudoso
 
+
 #Dummy variable alternative to Chow--------------------------------------------
 
-#formulae
-
-mod3_unrestr <- "eval_pres ~ breakpoint*ideol_GMC + breakpoint*ideol_2 + 
+#A different approach to test coefficient discontinuities is to use dummy with
+#pooled data, instead of 2 samples plus the pooled data of the Chow original approach.
+#The unrestricted model will be:
+mod3_unrestr <- "eval_pres ~ breakpoint*ideol_GMC ,+ breakpoint*ideol_2 + 
 breakpoint*ideol_3 + man + higher_educ + welloff"
-mod3_restr <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + 
-man+higher_educ+welloff"
+#the idea is to infer a "joint hypothesis" test of multiple restrictions.
+#This joint hypothesis will be: all coefficients for terms containing the dummy
+#are equal to 0. Thus, the restricted model will be:
+mod3_restr <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
 
 #Dummy Chow function
-chow_dummy <- chow <- function(pre, post, significance = .05){
-  unrestricted <- mod3_unrestr
-  restricted <- mod3_restr
+chow_dummy <- function(pre, 
+                       post, 
+                       restricted, 
+                       unrestricted, 
+                       significance = .05){
   #definimos el pooled data set con una dummy de punto discontinuidad
   pooled <- bind_rows(pre, post) %>% 
     mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
@@ -156,36 +164,56 @@ chow_dummy <- chow <- function(pre, post, significance = .05){
   lin_unrestr <- lm(unrestricted, data = pooled, weights = PESO)
   robust_unrestr <- robustbase::lmrob(unrestricted, data = pooled, weights = PESO)
   #definimos las matrices de hipótesis (multcomp)
-  k_chow <- read_rds("k_chow.rds") #Solo los coeficientes con la dummy son = 0
-  K <- cbind(diag(length(coef(robust_unrestr)))) #todos los coeficientes = 0
-  rownames(K) <- names(coef(robust_unrestr)) 
-  #Definimos los objeto multcomp del test de chow
+  k_restr <- read_rds("k_chow.rds") #Solo los coeficientes con la dummy son = 0
+  k_unrestr <- cbind(diag(length(coef(robust_unrestr)))) #todos los coeficientes = 0
+  rownames(k_unrestr) <- names(coef(robust_unrestr))
+  #Definimos los objeto multcomp del test de Chow
   #los modelos chow se utilizan para la inferencia multiple de las variables dummy
   #usamos dos alternativas robustas ante la heteroscedasticidad:
   #sandwich y estimador MM (regresion robusta)
-  aux_linear_chow <- glht(lin_unrestr, linfct = k_chow, vcov =sandwich)
-  aux_robust_chow <- glht(robust_unrestr, linfct = k_chow)
-  #Calculamos los F-statistic 
+  aux_linear_chow <- glht(lin_unrestr, linfct = k_restr, vcov =sandwich)
+  aux_robust_chow <- glht(robust_unrestr, linfct = k_restr)
+  #Calculamos los F-statistic del test chow con dummy
   linear_chow <- summary(aux_linear_chow, test = Ftest())
   robust_chow <- summary(aux_robust_chow, test =Ftest())
-  
-  aux_linear_completo <- glht(lin_unrestr, linfct = K, vcov= sandwich)
-  aux_robust_completo <- glht(robust_unrestr, linfct = K)
-  
-  linear_completo <- summary(aux_linear_completo)
-  robust_completo <- summary(aux_robust_completo)
   #Calculamos el valor F-crítico. No importa si usamos linear_chow o robust_chow
   fcritico <- qf(1-significance, 
                  linear_chow$test$df[1], 
                  linear_chow$test$df[2])
+  #otra alternativa es simplemente realizar la inferencia múltiple mediante
+  #el max-t test descrito por Hothorn, Bretz y Westfall(2008)
+  linear_chow_maxt <- summary(aux_linear_chow)
+  robust_chow_maxt <- summary(aux_robust_chow)
+  #Contraste de hipótesis para los dos métodos alternativos:robust and sandwich
   chow_linear <- if_else(linear_chow$test$fstat > fcritico, 
-                         paste0("Hay discontinuidad en la regresión al ", significance), 
-                         paste0("No hay discontinuidad en la regresión al ", significance)
+                         paste0("Hay discontinuidad en la regresión al ", 
+                                significance), 
+                         paste0("No hay discontinuidad en la regresión al ", 
+                                significance)
   )
-  aux <- data.frame(var = c(linear$residuals, lin_restr$residuals),
-                    group = c(rep(0, nobs(linear)), rep(1, nobs(lin_restr))) %>% 
+  chow_robust <- if_else(robust_chow$test$fstat > fcritico, 
+                         paste0("Hay discontinuidad en la regresión al ", 
+                                significance), 
+                         paste0("No hay discontinuidad en la regresión al ", 
+                                significance)
+  )
+  
+  #los modelos completo se utlizarán para realizar la regresión, obtener
+  #sus coeficientes, SE y p-value
+  #también se utiliza el ajuste multcomp de inferencia múltiple
+  #y las dos aproximaciones a la heteroscedasticity sandwich y robust MM
+  aux_linear_completo <- glht(lin_unrestr, linfct = k_unrestr, vcov= sandwich)
+  aux_robust_completo <- glht(robust_unrestr, linfct = k_unrestr)
+  linear_completo <- summary(aux_linear_completo)
+  robust_completo <- summary(aux_robust_completo)
+  
+
+  aux <- data.frame(var = c(lin_unrestr$residuals, 
+                            lin_restr$residuals),
+                    group = c(rep(0, nobs(lin_unrestr)), 
+                              rep(1, nobs(lin_restr))) %>% 
                       factor()
-  )
+                    )
   levene <- car::leveneTest(aux$var, aux$group, center = median)
   fk <- fligner.test(aux$var, aux$group)
   aux1 <- if(levene$`Pr(>F)`[1] < significance){
@@ -200,7 +228,8 @@ chow_dummy <- chow <- function(pre, post, significance = .05){
   }
   
   salida <- list(Homoscedastico = list(levene = aux1, fk = aux2),
-                 discontinuidad = chow_linear,
+                 discontinuidad_sandwich = chow_linear,
+                 discontinuidad_robust = chow_robust,
                  f = as.numeric(linear_chow$test$fstat),
                  fcritico = fcritico,
                  MM = broom::tidy(robust_completo ) %>%
@@ -213,6 +242,12 @@ chow_dummy <- chow <- function(pre, post, significance = .05){
                           Upper = conf.high, 'P value' = p.value)
   )
   return(salida)
+  message(salida$Homoscedastico$levene)
+  message(salida$Homoscedastico$fk)
+  message("F = ", salida$f)
+  message("F critico = ", salida$fcritico)
+  message("Mediante estimador sandwich: ", discontinuid)
+  
 }
 
 # Aplicamos chow_dummy a cada transición de periodo
