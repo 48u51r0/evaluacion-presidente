@@ -140,7 +140,7 @@ chow(pre = df_pre, post = df_post, formula = mod3, significance = 0.01)#CAmbio. 
 #A different approach to test coefficient discontinuities is to use dummy with
 #pooled data, instead of 2 samples plus the pooled data of the Chow original approach.
 #The unrestricted model will be:
-mod3_unrestr <- "eval_pres ~ breakpoint*ideol_GMC ,+ breakpoint*ideol_2 + 
+mod3_unrestr <- "eval_pres ~ breakpoint*ideol_GMC + breakpoint*ideol_2 + 
 breakpoint*ideol_3 + man + higher_educ + welloff"
 #the idea is to infer a "joint hypothesis" test of multiple restrictions.
 #This joint hypothesis will be: all coefficients for terms containing the dummy
@@ -232,13 +232,25 @@ chow_dummy <- function(pre,
                  discontinuidad_robust = chow_robust,
                  f = as.numeric(linear_chow$test$fstat),
                  fcritico = fcritico,
-                 MM = broom::tidy(robust_completo ) %>%
+                 maxt_linear = broom::tidy(linear_chow_maxt) %>% 
+                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                            as.numeric() %>% 
+                            round(3) 
+                   )%>% 
+                   select(Parameters = contrast, Beta = estimate, 'P value' = p.value),
+                 maxt_robust = broom::tidy(robust_chow_maxt) %>% 
+                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                            as.numeric() %>% 
+                            round(3) 
+                   )%>% 
+                   select(Parameters = contrast, Beta = estimate, 'P value' = p.value),
+                 MM = broom::tidy(robust_completo) %>%
                    inner_join(broom::tidy(confint(aux_robust_completo))) %>% 
-                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
+                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3)
                    ) %>% 
-                   select(Parameters = lhs, Beta = estimate, Lower = conf.low, 
+                   select(Parameters = contrast, Beta = estimate, Lower = conf.low, 
                           Upper = conf.high, 'P value' = p.value)
   )
   return(salida)
@@ -246,16 +258,19 @@ chow_dummy <- function(pre,
   message(salida$Homoscedastico$fk)
   message("F = ", salida$f)
   message("F critico = ", salida$fcritico)
-  message("Mediante estimador sandwich: ", discontinuid)
-  
+  message("Mediante estimador sandwich: ", discontinuidad_robust)
 }
 
 # Aplicamos chow_dummy a cada transición de periodo
-aux1 <- chow_dummy(df_3269, df_3271, significance = 0.01)
-aux2 <- chow_dummy(df_3271, df_3273, significance = 0.01)
-aux3 <- chow_dummy(df_3273, df_3277, significance = 0.01)
-aux4 <- chow_dummy(df_3277, df_3279, significance = 0.01)
-aux5 <- chow_dummy(df_3279, df_3281, significance = 0.01)
+aux1 <- chow_dummy(df_3269, df_3271, mod3_restr, mod3_unrestr, significance = 0.01)
+aux2 <- chow_dummy(df_3271, df_3273, mod3_restr, mod3_unrestr, significance = 0.01)
+aux3 <- chow_dummy(df_3273, df_3277, mod3_restr, mod3_unrestr, significance = 0.01)
+aux4 <- chow_dummy(df_3277, df_3279, mod3_restr, mod3_unrestr, significance = 0.01)
+aux5 <- chow_dummy(df_3279, df_3281, mod3_restr, mod3_unrestr, significance = 0.01)
+
+#hay una discontinuidad en aux2
+#hay una discontinuidad en aux4
+
 
 #comprobamos la homocedasticidad
 aux1$Homoscedastico
