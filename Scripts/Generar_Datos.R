@@ -1,6 +1,4 @@
 # --------------Instalar paquetes-------------------------------
-
-
 rm(list = ls())
 install_pack <- function(pkg){
   new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
@@ -16,10 +14,15 @@ conflict_prefer("filter", "dplyr")
 rm("packages", "install_pack")
 
 # --------------Importar datos-------------------------------------
-
-backup_3269 <- read_sav("Data_Sources/3269_Postelectoral.sav")
-backup_3271 <- read_sav("Data_Sources/3271_BaromEnero.sav")
-backup_3273 <- read_sav("Data_Sources/3273_BaromFebrero.sav")
+#3269:Postelectoral
+#3271:Enero
+#3273:Febrero
+#3277:Marzo
+#3279:Abril
+#3281:Mayo
+backup_3269 <- read_sav("Data_Sources/3269.sav")
+backup_3271 <- read_sav("Data_Sources/3271.sav")
+backup_3273 <- read_sav("Data_Sources/3273.sav")
 backup_3277 <- read_sav("Data_Sources/3277.sav")
 backup_3279 <- read_sav("Data_Sources/3279.sav")
 backup_3281 <- read_sav("Data_Sources/3281.sav")
@@ -56,7 +59,7 @@ df_3269 <- read_rds("backup_3269.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(B29_1)  %in% c(97, 98, 99) ~ NA_real_,
                           TRUE ~ as.numeric(B29_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   B29_2 = case_when(as.numeric(B29_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(B29_2)),
   B29_3 = case_when(as.numeric(B29_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -72,15 +75,15 @@ df_3269 <- read_rds("backup_3269.rds") %>%
   eval_opos = pmax(B29_2, B29_3, B29_4, B29_5, B29_6, B29_7, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(C3)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(C3)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(C5_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(C5_1)),
-  ideolpres_GMC = ideol_pres - mean(ideol_pres, na.rm = TRUE),
+  ideolpres_GMC = ideol_pres - weighted.mean(w = PESO, x = ideol_pres, na.rm = TRUE),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(C9 == 1 ~ 1L,
@@ -105,7 +108,7 @@ df_3269 <- read_rds("backup_3269.rds") %>%
            ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>% 
   write_rds("df_3269.rds")
 # 2. Enero---------------------------------------------------------------------
@@ -130,7 +133,7 @@ df_3271 <- read_rds("backup_3271.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(A16_1)  %in% c(97, 98, 99) ~ NA_real_,
                           TRUE ~ as.numeric(A16_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   A16_2 = case_when(as.numeric(A16_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(A16_2)),
   A16_3 = case_when(as.numeric(A16_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -146,14 +149,14 @@ df_3271 <- read_rds("backup_3271.rds") %>%
   eval_opos = pmax(A16_2, A16_3, A16_4, A16_5, A16_6, A16_7, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(ESCIDEOL)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOL)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(ESCIDEOLPOLI_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOLPOLI_1)),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(SEXO == 1 ~ 1L,
@@ -178,7 +181,7 @@ df_3271 <- read_rds("backup_3271.rds") %>%
            ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>% 
   write_rds("df_3271.rds")
 
@@ -206,7 +209,7 @@ df_3273 <- read_rds("backup_3273.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(B15_1)  %in% c(97, 98, 99) ~ NA_real_,
                         TRUE ~ as.numeric(B15_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   B15_2 = case_when(as.numeric(B15_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(B15_2)),
   B15_3 = case_when(as.numeric(B15_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -222,14 +225,14 @@ df_3273 <- read_rds("backup_3273.rds") %>%
   eval_opos = pmax(B15_2, B15_3, B15_4, B15_5, B15_6, B15_7, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(ESCIDEOL)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOL)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(ESCIDEOLPOLI_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOLPOLI_1)),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(SEXO == 1 ~ 1L,
@@ -254,7 +257,7 @@ df_3273 <- read_rds("backup_3273.rds") %>%
     ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>%
   write_rds("df_3273.rds")
 
@@ -280,7 +283,7 @@ df_3277 <- read_rds("backup_3277.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(A17_1)  %in% c(97, 98, 99) ~ NA_real_,
                         TRUE ~ as.numeric(A17_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   A17_2 = case_when(as.numeric(A17_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(A17_2)),
   A17_3 = case_when(as.numeric(A17_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -296,14 +299,14 @@ df_3277 <- read_rds("backup_3277.rds") %>%
   eval_opos = pmax(A17_2, A17_3, A17_4, A17_5, A17_6, A17_7, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(ESCIDEOL)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOL)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(ESCIDEOLPOLI_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOLPOLI_1)),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(SEXO == 1 ~ 1L,
@@ -328,7 +331,7 @@ df_3277 <- read_rds("backup_3277.rds") %>%
     ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>%
   write_rds("df_3277.rds")
 
@@ -355,7 +358,7 @@ df_3279 <- read_rds("backup_3279.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(P31_1)  %in% c(97, 98, 99) ~ NA_real_,
                         TRUE ~ as.numeric(P31_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   P31_2 = case_when(as.numeric(P31_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(P31_2)),
   P31_3 = case_when(as.numeric(P31_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -369,14 +372,14 @@ df_3279 <- read_rds("backup_3279.rds") %>%
   eval_opos = pmax(P31_2, P31_3, P31_4, P31_5, P31_6, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(ESCIDEOL)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOL)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(ESCIDEOLPOLI_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOLPOLI_1)),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(SEXO == 1 ~ 1L,
@@ -401,7 +404,7 @@ df_3279 <- read_rds("backup_3279.rds") %>%
     ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>%
   write_rds("df_3279.rds")
 # 5. Mayo----------------------------------------------------------------------
@@ -427,7 +430,7 @@ df_3281 <- read_rds("backup_3281.rds") %>%
     relevel(2),
   eval_pres = case_when(as.numeric(P33_1)  %in% c(97, 98, 99) ~ NA_real_,
                         TRUE ~ as.numeric(P33_1)),
-  evalpres_GMC = eval_pres - mean(eval_pres, na.rm = TRUE),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
   P33_2 = case_when(as.numeric(P33_2) %in% c(97, 98, 99) ~ NA_real_,
                     TRUE ~ as.numeric(P33_2)),
   P33_3 = case_when(as.numeric(P33_3) %in% c(97, 98, 99) ~ NA_real_,
@@ -439,14 +442,16 @@ df_3281 <- read_rds("backup_3281.rds") %>%
   eval_opos = pmax(P33_2, P33_3, P33_4, P33_5, na.rm = TRUE),
   ideol_pers = case_when(as.numeric(ESCIDEOL)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOL)),
-  ideolpers_GMC = ideol_pers - mean(ideol_pers, na.rm = TRUE),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   ideol_pres = case_when(as.numeric(ESCIDEOLPOLI_1)  %in% c(97, 98, 99) ~ NA_real_,
                          TRUE ~ as.numeric(ESCIDEOLPOLI_1)),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - mean(dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
-  ideol_2 = ideolpers_GMC^2,
-  ideol_3 = ideolpers_GMC^3,
+  ideol_2 = ideol_GMC^2,
+  ideol_3 = ideol_GMC^3,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
   man = case_when(SEXO == 1 ~ 1L,
@@ -471,7 +476,7 @@ df_3281 <- read_rds("backup_3281.rds") %>%
     ) %>% 
     relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideolpers_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
+  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>%
   write_rds("df_3281.rds")
 #---------------Eliminamos objetos del Global Environment----------------------------------------

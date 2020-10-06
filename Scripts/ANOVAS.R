@@ -38,7 +38,7 @@ ggplot(pooled_aov, aes(y = eval_pres, x = ideologia))+
   facet_wrap(~RV, scales = "free")
 
 #grafico con ponderación
-pooled_aov[pooled_aov$RV == "PP",] %>% 
+pooled_aov %>% 
   group_by(ideologia, Periodo) %>% 
   summarise(media = Hmisc::wtd.mean(eval_pres, PESO), 
             se =sqrt(Hmisc::wtd.var(eval_pres, PESO)) / sqrt(n()), 
@@ -49,13 +49,21 @@ pooled_aov[pooled_aov$RV == "PP",] %>%
   geom_point() + 
   geom_errorbar(aes(ymin=lwr, ymax=uppr, width = .1)) +
   labs(x = "Autoubicación ideológica (1-10)", y = "Valoración del presidente (1-10)")
+#evolucion de las ubicaciones de los votantes
+bp <- ggplot(pooled, aes(x=fct_reorder(RV, order), 
+                         y=ideologia, 
+                         group=RV, 
+                         weight = PESO)) + 
+  geom_boxplot(aes(fill=RV)) + 
+  labs(x = "Recuerdo de voto últimas generales", y = "Autoubicación ideológica (1-10)")+ 
+  coord_flip() + theme(legend.position = "none") +
+  transition_states(Periodo, transition_length = 2, state_length = 2) +
+  ggtitle('Periodo: {closest_state}')
 
-bp <- ggplot(pooled_aov, aes(x=RV, y=ideologia, group=RV, weight = PESO)) + 
-  geom_boxplot(aes(fill=RV)) + transition_states(Periodo)
 # 2-way ANOVA------------------------------------------
 
-mod_int <- lm(eval_pres ~ ideologia * Periodo, data=pooled_aov, weights = PESO)
-mod_ad <- lm(eval_pres ~ ideologia + Periodo, data=pooled_aov, weights = PESO)
+mod_int <- lm(eval_pres ~ ideologia * Periodo, data=pooled, weights = PESO)
+mod_ad <- lm(eval_pres ~ ideologia + Periodo, data=pooled, weights = PESO)
 fit_int <- aov(mod_int)
 fit_ad <- aov(mod_ad)
 summary(fit_int)

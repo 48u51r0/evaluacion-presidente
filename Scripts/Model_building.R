@@ -9,7 +9,7 @@ df_3281 <- read_rds("df_3279.rds")
 
 #-----------------Visualising trends-----------------------------------------
 ggplot(data = df_3273, 
-       mapping = aes(x= ideolpers_GMC, 
+       mapping = aes(x= ideol, 
                      y = eval_pres, 
                      col= RV))+
   geom_jitter(width = 0.2, height = 0.2)+
