@@ -89,7 +89,7 @@ chow <- function(pre, post, formula, significance = .05){
   } else{
     cat("No se ha producido un cambio estructural\n")
   }
-  return(F_chow)
+  return(c(F_chow, F_critical))
 }
 
 #-----------------Running Chow tests----------------------------------------------
@@ -135,6 +135,9 @@ df_post <- df_3279
 chow(pre = df_pre, post = df_post, formula = mod3, significance = 0.01)#CAmbio. Dudoso
 
 
+
+#debido a la heteroskedasticidad los resultados de este test no son fiables
+
 #Dummy variable alternative to Chow--------------------------------------------
 
 #A different approach to test coefficient discontinuities is to use dummy with
@@ -160,7 +163,8 @@ chow_dummy <- function(pre,
              factor()
     )
   #definimos los modelos lineales y robusto
-  lin_restr <- lm(restricted, data = pooled, weights = PESO)
+  lin_restr_pre <- lm(restricted, data = pre, weights = PESO)
+  lin_restr_post <- lm(restricted, data = post, weights = PESO)
   lin_unrestr <- lm(unrestricted, data = pooled, weights = PESO)
   robust_unrestr <- robustbase::lmrob(unrestricted, data = pooled, weights = PESO)
   #definimos las matrices de hipótesis (multcomp)
@@ -188,7 +192,7 @@ chow_dummy <- function(pre,
   chow_linear <- if_else(linear_chow$test$fstat > fcritico, 
                          paste0("Hay discontinuidad en la regresión al ", 
                                 significance), 
-                         paste0("No hay discontinuidad en la regresión al ", 
+                         paste0("No hay discontinuidad en la regresión al", 
                                 significance)
   )
   chow_robust <- if_else(robust_chow$test$fstat > fcritico, 
@@ -207,24 +211,24 @@ chow_dummy <- function(pre,
   linear_completo <- summary(aux_linear_completo)
   robust_completo <- summary(aux_robust_completo)
   
-
-  aux <- data.frame(var = c(lin_unrestr$residuals, 
-                            lin_restr$residuals),
-                    group = c(rep(0, nobs(lin_unrestr)), 
-                              rep(1, nobs(lin_restr))) %>% 
+  aux <- data.frame(var = c(lin_restr_pre$residuals, 
+                            lin_restr_post$residuals),
+                    group = c(rep(0, nobs(lin_restr_pre)), 
+                              rep(1, nobs(lin_restr_post))) %>% 
                       factor()
-                    )
+  )
   levene <- car::leveneTest(aux$var, aux$group, center = median)
   fk <- fligner.test(aux$var, aux$group)
   aux1 <- if(levene$`Pr(>F)`[1] < significance){
-    paste0("Levene test: Heteroskedastico al ", significance, ". Resultado Chow: dudoso")
+    cat("Levene test: Heteroskedastico al ", significance, ". Resultado Chow: dudoso\n")
   } else {
-    paste0("Levene test: Homoskedástico al ", significance, ". Resultado Chow: probable")
+    cat("Levene test: Homoskedástico al ", significance, ". Resultado Chow: probable\n")
   }
+  
   aux2 <- if(fk$p.value < significance){
-    paste0("Fligner-Killeen: Heteroskedastico al ", significance, ". Resultado Chow: dudoso")
+    cat("Fligner-Killeen: Heteroskedastico al ", significance, ". Resultado Chow: dudoso\n")
   } else {
-    paste0("Fligner-Killeen: Homoskedástico al ", significance, ". Resultado Chow: probable")
+    cat("Fligner-Killeen: Homoskedástico al ", significance, ". Resultado Chow: probable\n")
   }
   
   salida <- list(Homoscedastico = list(levene = aux1, fk = aux2),
@@ -233,25 +237,29 @@ chow_dummy <- function(pre,
                  f = as.numeric(linear_chow$test$fstat),
                  fcritico = fcritico,
                  maxt_linear = broom::tidy(linear_chow_maxt) %>% 
-                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3) 
                    )%>% 
-                   select(Parameters = contrast, Beta = estimate, 'P value' = p.value),
-                 maxt_robust = broom::tidy(robust_chow_maxt) %>% 
-                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                   select(Parameters = lhs, Beta = estimate, 'P value' = p.value),
+                 maxt_robust = broom::tidy(robust_chow_maxt) %>%
+                   inner_join(broom::tidy(confint(aux_robust_chow, 
+                                                  level = 1 - significance))) %>% 
+                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3) 
                    )%>% 
-                   select(Parameters = contrast, Beta = estimate, 'P value' = p.value),
+                   select(Parameters = lhs, Beta = estimate, Lower = conf.low, 
+                          Upper = conf.high, 'P value' = p.value),
                  MM = broom::tidy(robust_completo) %>%
-                   inner_join(broom::tidy(confint(aux_robust_completo))) %>% 
-                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                   inner_join(broom::tidy(confint(aux_robust_completo, 
+                                                  level = 1 - significance))) %>% 
+                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3)
                    ) %>% 
-                   select(Parameters = contrast, Beta = estimate, Lower = conf.low, 
-                          Upper = conf.high, 'P value' = p.value)
+                   select(Parameters = contrast, Beta = estimate, SE = std.error,
+                          Lower = conf.low, Upper = conf.high, 'P value' = p.value)
   )
   return(salida)
   message(salida$Homoscedastico$levene)
@@ -268,15 +276,15 @@ aux3 <- chow_dummy(df_3273, df_3277, mod3_restr, mod3_unrestr, significance = 0.
 aux4 <- chow_dummy(df_3277, df_3279, mod3_restr, mod3_unrestr, significance = 0.01)
 aux5 <- chow_dummy(df_3279, df_3281, mod3_restr, mod3_unrestr, significance = 0.01)
 
-#hay una discontinuidad en aux2
-#hay una discontinuidad en aux4
+#hay una discontinuidad en aux2 al 0.05 pero no al 0.01
+#hay una discontinuidad en aux4 
 
 
 #comprobamos la homocedasticidad
 aux1$Homoscedastico
 aux2$Homoscedastico
-aux3$Homoscedastico
-aux4$Homoscedastico
+aux3$Homoscedastico #Heteroskedastico
+aux4$Homoscedastico #Heteroskedastico
 aux5$Homoscedastico
 #todas las transiciones son homoscedasticas
 
