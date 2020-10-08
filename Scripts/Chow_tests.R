@@ -138,7 +138,7 @@ chow(pre = df_pre, post = df_post, formula = mod3, significance = 0.01)#CAmbio. 
 
 #debido a la heteroskedasticidad los resultados de este test no son fiables
 
-#Dummy variable alternative to Chow--------------------------------------------
+#-----------------Dummy variable alternative to Chow--------------------------------------------
 
 #A different approach to test coefficient discontinuities is to use dummy with
 #pooled data, instead of 2 samples plus the pooled data of the Chow original approach.
@@ -220,15 +220,15 @@ chow_dummy <- function(pre,
   levene <- car::leveneTest(aux$var, aux$group, center = median)
   fk <- fligner.test(aux$var, aux$group)
   aux1 <- if(levene$`Pr(>F)`[1] < significance){
-    cat("Levene test: Heteroskedastico al ", significance, ". Resultado Chow: dudoso\n")
+    paste0("Levene test: Heteroskedastico al ", significance, ". Resultado Chow: dudoso")
   } else {
-    cat("Levene test: Homoskedástico al ", significance, ". Resultado Chow: probable\n")
+    paste0("Levene test: Homoskedástico al ", significance, ". Resultado Chow: probable")
   }
   
   aux2 <- if(fk$p.value < significance){
-    cat("Fligner-Killeen: Heteroskedastico al ", significance, ". Resultado Chow: dudoso\n")
+    paste0("Fligner-Killeen: Heteroskedastico al ", significance, ". Resultado Chow: dudoso")
   } else {
-    cat("Fligner-Killeen: Homoskedástico al ", significance, ". Resultado Chow: probable\n")
+    paste0("Fligner-Killeen: Homoskedástico al ", significance, ". Resultado Chow: probable")
   }
   
   salida <- list(Homoscedastico = list(levene = aux1, fk = aux2),
@@ -236,30 +236,35 @@ chow_dummy <- function(pre,
                  discontinuidad_robust = chow_robust,
                  f = as.numeric(linear_chow$test$fstat),
                  fcritico = fcritico,
-                 maxt_linear = broom::tidy(linear_chow_maxt) %>% 
-                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
+                 maxt_linear = broom::tidy(linear_chow_maxt) %>%
+                 inner_join(broom::tidy(confint(aux_linear_chow, 
+                                                level = 1 - significance))) %>% 
+                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3) 
                    )%>% 
-                   select(Parameters = lhs, Beta = estimate, 'P value' = p.value),
+                   select('Parámetro' = contrast, Beta = estimate, 
+                          'Error Est.' = std.error, 'IC inferior' = conf.low, 
+                          'IC superior' = conf.high, 'P ajustado' = p.value),
                  maxt_robust = broom::tidy(robust_chow_maxt) %>%
-                   inner_join(broom::tidy(confint(aux_robust_chow, 
-                                                  level = 1 - significance))) %>% 
-                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
+                 inner_join(broom::tidy(confint(aux_robust_chow, 
+                                                level = 1 - significance))) %>% 
+                   mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
                             as.numeric() %>% 
                             round(3) 
-                   )%>% 
-                   select(Parameters = lhs, Beta = estimate, Lower = conf.low, 
-                          Upper = conf.high, 'P value' = p.value),
+                   ) %>%
+                   select('Parámetro' = contrast, Beta = estimate, 
+                          'Error Est.' = std.error, 'IC inferior' = conf.low, 
+                          'IC superior' = conf.high, 'P ajustado' = p.value),
                  MM = broom::tidy(robust_completo) %>%
-                   inner_join(broom::tidy(confint(aux_robust_completo, 
-                                                  level = 1 - significance))) %>% 
-                   mutate(p.value = format(p.value, scientific = FALSE) %>% 
-                            as.numeric() %>% 
-                            round(3)
-                   ) %>% 
-                   select(Parameters = contrast, Beta = estimate, SE = std.error,
-                          Lower = conf.low, Upper = conf.high, 'P value' = p.value)
+                  inner_join(broom::tidy(confint(aux_robust_completo, 
+                                                 level = 1 - significance))) %>% 
+                  mutate(p.value = format(adj.p.value, scientific = FALSE) %>% 
+                           as.numeric() %>% 
+                           round(3)
+                  ) %>% 
+                  select('Parámetro' = contrast, Beta = estimate, 'Error Est.' = std.error,
+                         'IC inferior' = conf.low, 'IC superior' = conf.high, 'P ajustado' = p.value)
   )
   return(salida)
   message(salida$Homoscedastico$levene)
@@ -286,29 +291,45 @@ aux2$Homoscedastico
 aux3$Homoscedastico #Heteroskedastico
 aux4$Homoscedastico #Heteroskedastico
 aux5$Homoscedastico
-#todas las transiciones son homoscedasticas
 
-# Añadimos una variable para identificar el periodo
-aux1$MM <- within(aux1$MM, {periodo <- 1})
-aux2$MM <- within(aux2$MM, {periodo <- 2})
-aux3$MM <- within(aux3$MM, {periodo <- 3})
-aux4$MM <- within(aux4$MM, {periodo <- 4})
-aux5$MM <- within(aux5$MM, {periodo <- 5})
+#-----------------Visualización del contraste de hipótesis----------------
+#Creamos una tabla con todos los resultados de los test max-t
+#indicamos a que periodo corresponde cada contraste
+#cada periodo implica una transición. periodo 1 es la transicion entre
+#los datos del posteletoral y el barómetro de enero
+aux1$maxt_robust <- within(aux1$maxt_robust, {periodo <- 1})
+aux2$maxt_robust <- within(aux2$maxt_robust, {periodo <- 2})
+aux3$maxt_robust <- within(aux3$maxt_robust, {periodo <- 3})
+aux4$maxt_robust <- within(aux4$maxt_robust, {periodo <- 4})
+aux5$maxt_robust <- within(aux5$maxt_robust, {periodo <- 5})
 #fusionamos
-bind_rows(aux1$MM, aux2$MM, aux3$MM, aux4$MM, aux5$MM) %>% 
-  mutate(periodo = factor(periodo, labels = c("Enr",
-                                              "Feb",
-                                              "Mar",
-                                              "Abr",
-                                              "May"))) %>% 
-  filter(!str_detect(Parameters, "higher|welloff|man")) %>% 
-  ggplot(aes(x = periodo, y = Beta, group = Parameters)) + 
+bind_rows(aux1$maxt_robust, aux2$maxt_robust, aux3$maxt_robust, aux4$maxt_robust, aux5$maxt_robust) %>% 
+  mutate(periodo = factor(periodo, 
+                          levels= 1:5,
+                          labels = c("Enr", "Feb", "Mar", "Abr", "May")
+                          ),
+         facet = `Parámetro` %>% 
+           #hay que cambiar las formulas de las etiquetas. solo ejemplo
+           #https://rstudio-pubs-static.s3.amazonaws.com/136237_170402e5f0b54561bf7605bdea98267a.html
+           #to write powers like 2^3 --> 2^{3}
+           factor(levels = unique(aux1$maxt_robust$`Parámetro`),
+                  labels = c("tau", "tau*beta[1]",
+                             "tau*beta[2]", "tau*beta[3]")
+                  )
+         ) %>% 
+  ggplot(aes(x = periodo, y = Beta, group =  `Parámetro`)) + 
   geom_line() + 
   geom_point() + 
-  geom_errorbar(aes(ymin=Lower, ymax=Upper, width = .1)) + 
+  geom_errorbar(aes(ymin=`IC inferior`, ymax=`IC superior`, width = .1)) + 
   geom_hline(yintercept = 0, colour = "red", linetype = "dashed") +
   geom_vline(xintercept = 3.5, colour = "darkblue", linetype = "dotted", size = 1) +
-  facet_wrap(~Parameters, scales = "free")
+  facet_wrap(.~facet, scales = "free", labeller = label_parsed)
+
+
+
+#-----------------Test QLR------------------------------------------------
+#Este test sirve para detectar en qué momento o parte de un dataset hay
+#un cambio estructural. Vamos a obviarlo ya que es redundante
 
 F_serie <- c('Enr' = aux1$f, 'Feb' =aux2$f, 'Mar' = aux3$f, 'Abr' = aux4$f, 'May' = aux5$f)
 Fcritico_serie <- c('Enr' = aux1$fcritico, 'Feb' =aux2$fcritico, 'Mar' = aux3$fcritico, 
@@ -323,3 +344,40 @@ QLR_test <- ggplot(QLR_data, aes(x= Tiempo)) +
   geom_line(aes(y = F, group= 1)) + 
   geom_point(aes(y = F, color = cambio), size = 1.5)+
   geom_line(aes(x= Tiempo, y = Crit, group= 1), linetype = "dashed")
+#-----------------Marginal Effects---------------------------------------------
+pre <- df_3269
+post <- df_3271
+unrestricted <- "eval_pres ~ breakpoint*ideol_GMC + breakpoint*ideol_2 + 
+breakpoint*ideol_3 + man + higher_educ + welloff"
+restricted <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+pooled <- bind_rows(pre, post) %>% 
+  mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
+                                Periodo == max(Periodo) ~ 1) %>% 
+           factor()
+  )
+
+
+robust <- robustbase::lmrob(eval_pres ~ breakpoint*ns(ideol_GMC, 3) + man + higher_educ + welloff,
+                            data = pooled,
+                            weights = PESO)
+
+dat <- ggpredict(robust, c("ideol_GMC[all]", "breakpoint"))
+
+aux <- pooled %>% 
+  select(eval_pres, ideol_GMC, PESO) %>% 
+  group_by(eval_pres, ideol_GMC) %>% 
+  dplyr::arrange(eval_pres) %>% 
+  dplyr::summarise(size = sum(PESO)) %>% 
+  dplyr::rename( predicted=eval_pres ,  x=ideol_GMC )
+
+ggplot()+
+  geom_point(data=aux, 
+             mapping=aes(x=x, y=predicted, size=size), 
+             alpha = 0.1)+
+  geom_jitter()+
+  geom_line(dat, 
+            mapping=aes(x=x, y=predicted,group = group, color= group)) +
+  geom_ribbon(dat, 
+              mapping=aes(x=x, y=predicted,group = group,
+                          ymin= conf.low, ymax=conf.high, fill=group),
+              alpha= .1, colour=NA)
