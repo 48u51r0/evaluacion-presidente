@@ -1,14 +1,13 @@
-#-----------------Loading datasets------------------------------------------
+#-----------------Start up------------------------------------------
+#3269:Postelectoral
+#3271:Enero
+#3273:Febrero
+#3277:Marzo
+#3279:Abril
+#3281:Mayo
 
-df_3269 <- read_rds("df_3269.rds")
-df_3271 <- read_rds("df_3271.rds")
-df_3273 <- read_rds("df_3273.rds")
-df_3277 <- read_rds("df_3277.rds")
-df_3279 <- read_rds("df_3279.rds")
-df_3281 <- read_rds("df_3281.rds")
-
-lista_datos <- list(df_3269, df_3271, df_3273, 
-                    df_3277, df_3279, df_3281)
+#Loading all the necessary packages and datasets
+source("Scripts/Cargar_datos.R")
 
 #-----------------Several models of relations between DV and IV--------------
 mod0 <- "eval_pres~man+higher_educ+welloff"
@@ -345,14 +344,30 @@ QLR_test <- ggplot(QLR_data, aes(x= Tiempo)) +
   geom_point(aes(y = F, color = cambio), size = 1.5)+
   geom_line(aes(x= Tiempo, y = Crit, group= 1), linetype = "dashed")
 #-----------------Marginal Effects---------------------------------------------
-pre <- df_3269
-post <- df_3271
-unrestricted <- "eval_pres ~ breakpoint*ideol_GMC + breakpoint*ideol_2 + 
-breakpoint*ideol_3 + man + higher_educ + welloff"
-restricted <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+pre <- df_3271
+post <- df_3273
+
+#una función para construir un data set de predict que permita hacer un facet
+# The args will be all the data sets available: evolucion(df_1, df_2, df_3)
+evolucion <- function(...){
+  aux <- list(...)
+  tmp <- list()
+  pooled <- list()
+  for (i in seq_length(length(aux))){
+    pre <- aux[[i]]
+    post <- aux[[i+1]]
+    pooled[[i]] <- bind_rows(pre, post) %>% 
+      mutate(breakpoint = case_when(Periodo == min(Periodo) ~ "Antes",
+                                    Periodo == max(Periodo) ~ "Después") %>% 
+               factor()
+      )
+  }
+}
+
+
 pooled <- bind_rows(pre, post) %>% 
-  mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
-                                Periodo == max(Periodo) ~ 1) %>% 
+  mutate(breakpoint = case_when(Periodo == min(Periodo) ~ "Antes",
+                                Periodo == max(Periodo) ~ "Después") %>% 
            factor()
   )
 
@@ -361,23 +376,32 @@ robust <- robustbase::lmrob(eval_pres ~ breakpoint*ns(ideol_GMC, 3) + man + high
                             data = pooled,
                             weights = PESO)
 
-dat <- ggpredict(robust, c("ideol_GMC[all]", "breakpoint"))
+
+pred <- ggpredict(robust, c("ideol_GMC[all]", "breakpoint"), ci.lvl = 0.99)
 
 aux <- pooled %>% 
-  select(eval_pres, ideol_GMC, PESO) %>% 
-  group_by(eval_pres, ideol_GMC) %>% 
-  dplyr::arrange(eval_pres) %>% 
-  dplyr::summarise(size = sum(PESO)) %>% 
-  dplyr::rename( predicted=eval_pres ,  x=ideol_GMC )
+  select(eval_pres, ideol_GMC, PESO, breakpoint) %>%
+  arrange(eval_pres,ideol_GMC,breakpoint) %>% 
+  group_by(breakpoint,eval_pres, ideol_GMC) %>% 
+  summarise(size=sum(PESO)) %>% 
+  ungroup() %>% 
+  mutate(prop = size/sum(size)*100) %>% 
+  rename( predicted=eval_pres ,  
+          x=ideol_GMC,
+          group = breakpoint) %>% 
+  select(-size)
 
 ggplot()+
   geom_point(data=aux, 
-             mapping=aes(x=x, y=predicted, size=size), 
-             alpha = 0.1)+
-  geom_jitter()+
-  geom_line(dat, 
+             mapping=aes(x=x, y=predicted, size=prop, color = group), 
+             alpha = 0.2)+
+  geom_jitter(width = 0.5, height = -0.5)+
+  geom_line(pred, 
             mapping=aes(x=x, y=predicted,group = group, color= group)) +
-  geom_ribbon(dat, 
+  geom_ribbon(pred, 
               mapping=aes(x=x, y=predicted,group = group,
                           ymin= conf.low, ymax=conf.high, fill=group),
-              alpha= .1, colour=NA)
+              alpha= .3, colour=NA) +
+  guides(color = FALSE,
+         size = FALSE)+
+  theme(legend.title = element_blank())

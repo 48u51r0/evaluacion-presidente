@@ -1,17 +1,18 @@
 # --------------Instalar paquetes-------------------------------
-rm(list = ls())
-install_pack <- function(pkg){
-  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-  if (length(new.pkg)) 
-    install.packages(new.pkg, dependencies = TRUE)
-  sapply(pkg, library, character.only = TRUE)
-}
-packages <- (c("haven", "sandwich", "multcomp", "emmeans", "tidyverse", "conflicted"))
+#rm(llist = ls())
+# loading library of functions 
+source("Scripts/libs.R")
+
+# Specify and install all the necessary packages
+packages <- (c("haven", "sandwich", "multcomp", "emmeans", 
+               "tidyverse", "conflicted", "ggeffects"))
 install_pack(packages)
-# resolvemos los conflictos de funciones entre dplyr y MASS
-conflict_prefer("select", "dplyr")
-conflict_prefer("filter", "dplyr")
-rm("packages", "install_pack")
+
+# Solve conflicts between packages 
+masked_functions()
+
+# Clean auxiliary functions and objects
+rm(list = c(lsf.str(), "packages"))
 
 # --------------Importar datos-------------------------------------
 #3269:Postelectoral
@@ -20,6 +21,8 @@ rm("packages", "install_pack")
 #3277:Marzo
 #3279:Abril
 #3281:Mayo
+
+# Read spss original data files
 backup_3269 <- read_sav("Data_Sources/3269.sav")
 backup_3271 <- read_sav("Data_Sources/3271.sav")
 backup_3273 <- read_sav("Data_Sources/3273.sav")
@@ -27,14 +30,13 @@ backup_3277 <- read_sav("Data_Sources/3277.sav")
 backup_3279 <- read_sav("Data_Sources/3279.sav")
 backup_3281 <- read_sav("Data_Sources/3281.sav")
 
-# guardar los archivos de datos originales
+# Backup original data files as R objects
 write_rds(backup_3269, "backup_3269.rds")
 write_rds(backup_3271, "backup_3271.rds")
 write_rds(backup_3273, "backup_3273.rds")
 write_rds(backup_3277, "backup_3277.rds")
 write_rds(backup_3279, "backup_3279.rds")
 write_rds(backup_3281, "backup_3281.rds")
-
 
 #----------Generar los dataframe de cada estudio-----------------------------------------
 
@@ -479,7 +481,5 @@ df_3281 <- read_rds("backup_3281.rds") %>%
   select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
   drop_na() %>%
   write_rds("df_3281.rds")
-#---------------Eliminamos objetos del Global Environment----------------------------------------
-
+#---------------Eliminamos objetos del Global Environment---------------------------------------
 rm(list = ls())
-         
