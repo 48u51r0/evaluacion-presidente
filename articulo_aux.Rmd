@@ -1,0 +1,33 @@
+---
+title: "articulo_aux"
+author: "Manuel Pellicer Cortés"
+date: "13/10/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Diseño de la investigación y datos utilizados
+
+La irrupción de la pandemia de la COVID 19 nos ofrece una ventana de oportunidad para estudiar los efectos que pueden ejercer suscesos disruptivos sobre la habitual relación existente entre las carácterísticas de los individuos y sus actitudes y comportamientos políticos. 
+En este caso nos hemos fijado en la relación entre la ideología y la valoración que los ciudadanos hacen del Presidente del Gobierno. Para ello disponemos de una fuente de datos, el CIS, que nos ofrece instantáneas de la sociedad española tomadas a intervalos más o menos regulares. Sus barómetros recogen las respuestas a un núcleo de preguntas que se ha mantenido constante en el periodo de estudio por lo que tenemos la oportunidad de inferir cambios temporales a partir de ellos.
+La declaración del estado de alarma y su consiguiente confinamiento de toda la población del país a partir del 14 de marzo de 2020 supone un suceso traumático colectivo no vivido hasta el momento. Por todo ello, la hipótesis de que esta decisión política suponga un shock que altere la forma en que los ciudadanos valoran la actuación de los actores políticos, ya sean institucionales, organizaciones como los partidos políticos o los propios políticos. Se ha elegido la figura presidencial como objeto de la valoración ciudadana ya que durante el confinamiento, al quedar suspendida la circulación, salvo de los trabajadores esenciales, y la permanencia en los espacios cerrados sin posibilidad de mantener las distancias, la actividad parlamentaria y partidista se redujo a la mínima expresión. 
+Esta situación provocó que la ciudadanía mantuviera una relación política estrecha con el presidente del gobierno como receptores de su diaria comunicación.
+Para 
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

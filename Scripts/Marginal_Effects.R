@@ -30,7 +30,7 @@ predictions <- function(..., significance = 0.99){
   df <<- pooled %>%
     map(~lmrob(eval_pres ~ breakpoint*ns(ideol_GMC, 3) + man + higher_educ + welloff, 
                data= ., 
-               weights = PESO)) %>% 
+               weights = PESO))  %>% 
     map(~ggpredict(., c("ideol_GMC[all]", "breakpoint"), ci.lvl = significance)) %>% 
     map(~as_tibble(.))
   for (i in seq_along(df)){
