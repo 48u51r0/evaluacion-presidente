@@ -12,8 +12,9 @@ source("Scripts/Cargar_datos.R")
 #-----------------Planteamiento de modelos-------------------------------------
 
 mod_vacio <- "eval_pres ~ man + higher_educ+ welloff"
-mod_simple <- "eval_pres ~ ideol_GMC + man + higher_educ + welloff"
-mod_completo <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+mod_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
+mod_ideologia <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+mod_completo <- "eval_pres ~ RV +ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
 
 datos <- bind_rows(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
 # ponderamos los pesos de cada dataset por la contribucion de cada
@@ -34,9 +35,12 @@ datos <- datos %>%
 `Vacío` <- lmrob(mod_vacio,
                data = datos,
             weights = w)
-Simple <- lmrob(mod_simple,
+Voto <- lmrob(mod_voto,
                data = datos,
                weights = w)
+`Ideología` <- lmrob(mod_ideologia,
+                     data = datos,
+                     weights = w)
 Completo <- lmrob(mod_completo,
                data = datos,
                weights = w)
@@ -62,7 +66,7 @@ names(Completo$coefficients)[4]<- "Ideología (cúbico)"
 names(Completo$coefficients)[5]<- "Hombre"
 names(Completo$coefficients)[6]<- "No universitario"
 names(Completo$coefficients)[7]<- "No acomodado"
-stargazer(`Vacío`, Simple, Completo, type = "text", 
+stargazer(`Vacío`, `Ideología`, Voto, Completo, type = "text", 
           intercept.bottom = FALSE, model.names = TRUE,
           object.names = TRUE, model.numbers = FALSE,
           out = "tresmodelos.html")

@@ -1,4 +1,4 @@
-rm(llist = ls())
+rm(list = ls())
 # loading library of functions 
 source("Scripts/libs.R")
 

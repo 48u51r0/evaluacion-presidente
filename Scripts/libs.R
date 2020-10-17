@@ -10,6 +10,7 @@ install_pack <- function(pkg){
 #for instance: masked_functions("ggplot2", "car")
 masked_functions <- function(...){
   aux <- conflict_scout(c("dplyr", "plyr", "MASS", ...))
+  
   for (i in 1:length(aux)){
     conflict_prefer(names(aux)[i], "dplyr")
   }
