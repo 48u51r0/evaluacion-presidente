@@ -13,24 +13,38 @@ install_pack(packages)
 Sys.setlocale("LC_TIME", "Spanish")
 
 # leemos el excel con los datos del timeline
-data <- readxl::read_xlsx("timeline.xlsx")
+dat <- readxl::read_xlsx("timeline.xlsx")
 
-gg_vistime(data, 
-                show_labels = FALSE,
-                col.color = "color",
-                background_lines = 0,
-                optimize_y = TRUE)+ 
-  geom_text_repel(aes(label = event), 
-                  color = "black",
-                  force = 2,
-                  box.padding = 1,
-                  segment.color = NA) +
-  geom_vline(data = data[data$group == "Hitos", ], 
+# adaptamos los datos del timeline para customizar el gráfico
+df <- vistime_data(dat) %>%
+  mutate(label = case_when(
+    str_detect(label, "Pos")  ~ "1",
+    str_detect(label, "Ener") ~ "2",
+    str_detect(label, "Feb")  ~ "3",
+    str_detect(label, "Marz") ~ "4",
+    str_detect(label, "Abr")  ~ "5",
+    str_detect(label, "May")  ~ "6",
+    TRUE~label),
+    fontcol = if_else(group == "Hitos", "black", "white"),
+    col = if_else(group == "Hitos", "white", "grey35"))
+gg_vistime(df, 
+           col.event = "label",
+           show_labels = TRUE,
+           col.color = "col",
+           background_lines = 0,
+           col.fontcolor = "fontcol", 
+           optimize_y = TRUE,
+           linewidth = 20)+ 
+  # añadimos lineas de referencia de los hitos
+  geom_vline(data = df[df$group == "Hitos", ], 
              mapping = aes(xintercept = start), 
-             color= "grey69",
-             alpha = 0.5
-               )
+             color= "black",
+             alpha = 0.25
+  )+ 
+  # configuramos la frecuencia y formato de valores en el eje x 
+  scale_x_datetime(breaks = date_breaks("1 month"),
+                      labels = date_format("%b  %y"))
+# exportamos el graf como png y medidas adaptadas
 
-
-# Una vez finalizado retornamos la configuración inglesa
-Sys.setlocale("LC_TIME", "English")
+# retornamos a configuración inglesa
+Sys.setlocale("LC_ALL", 'english')

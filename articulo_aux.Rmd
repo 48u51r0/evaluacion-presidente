@@ -3,14 +3,21 @@ title: "Art铆culo sobre valoraci贸n de l铆deres e ideolog铆a ante eventos disrup
 author: "Leticia M. Ruiz Rodriguez, Manuel Pellicer Cort茅s"
 date: "13/10/2020"
 output:
-  word_document:
-    number_sections: true
   pdf_document:
-    number_sections: true
+    number_sections: yes
+  word_document:
+    number_sections: yes
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	message = TRUE,
+	warning = TRUE,
+	include = FALSE
+)
+library(png)
 ```
 <!-- <If we don't want to number a section> -->
 # Introducci贸n {-}  
@@ -36,8 +43,10 @@ dos componentes principales definidos visualmente por sus coeficientes. En prime
 Para determinar los efectos de nuestro _tratamiento_ hemos utilizado los coeficientes $\tau$. As铆, $\tau_0$ ser谩 la diferencia entre la valoraci贸n media que realizan los individuos que se encuentran en cada uno de los grupos _before_ y _after_. Es decir la valoraci贸n media de los individuos del grupo _after_ cuya ubicaci贸n es la media de los individuos de su grupo ser谩 $\beta_0 + \tau_0$ y de la misma forma $\tau_1, \tau_2$y$\tau_3$ ser谩n, respectivamente, los complementos de $\beta_1, \beta_2$y$\beta_3$, para determinar la relaci贸n ideolog铆a-valoraci贸n en el momento posterior.
 Por lo tanto, para determinar si el confinamiento y la crisis multidimensional subsiguiente han provocado un cambio estructural en la forma en que la ideolog铆a influye sobre la valoraci贸n del presidente del gobierno realizaremos un contraste de hip贸tesis **H~0~**:$\ \tau_0 = \tau_1 =\tau_2=\tau_3=0$ siendo nuestra **H~A~** cualquiera de los posibles incumplimientos de la hip贸tesis nula.
 Esperamos que si nuestro planteamiento es correcto el impacto sea significativo y podamos decir que se ha producido un cambio estructural a partir de la declaraci贸n del estado de alarma. Para ello debemos seleccionar los datos del bar贸metro inmediatamente posterior a la declaraci贸n del estado de alarma y los inmediatamente anteriores. Al acotar de la manera m谩s estrecha posible el rango temporal alrededor de nuestro evento disruptivo, tratamos de minimizar la ocurrencia de eventos que puedan ser la verdadera causa de un potencial cambio estructural, en lugar de nuestro evento de inter茅s.  
-Adem醩 de los mencionados riesgos de validez interna, existen amenazas de fiabilidad de nuestros instrumentos de medida. Los tests aplicados sobre muestras diferentes, podr韆n producir coeficientes diferentes^[Con diferencias estad铆sticamente significativas]. Es decir, que medidas consecutivas sobre una misma poblaci髇 produjeran resultados diferentes. Aunque no tenemos la posibilidad de realizar mediciones repetidas en un mismo momento, la regularidad cuasimensual de los bar贸metros del CIS, nos permiten repetir las mediciones durante periodos en los que no se ha producido el fen髆eno que nosotros consideramos responsable del potencial cambio estructural. Por lo tanto, repitiendo sucesivamente el an醠isis en diferentes momentos. En concreto, hemos seleccionado estudiar 5 observaciones _before/after_ que agrupan seis muestras representativas correspondientes a otros tantos bar髆etros.
-
+Adem?s de los mencionados riesgos de validez interna, existen amenazas de fiabilidad de nuestros instrumentos de medida. Los tests aplicados sobre muestras diferentes, podr?an producir coeficientes diferentes^[Con diferencias estad铆sticamente significativas]. Es decir, que medidas consecutivas sobre una misma poblaci?n produjeran resultados diferentes. Aunque no tenemos la posibilidad de realizar mediciones repetidas en un mismo momento, la regularidad cuasimensual de los bar贸metros del CIS, nos permiten repetir las mediciones durante periodos en los que no se ha producido el fen?meno que nosotros consideramos responsable del potencial cambio estructural. Por lo tanto, repitiendo sucesivamente el an?lisis en diferentes momentos. 
+En la figura (1) puede verse de forma esquem醫ica la estructura temporal de nuestro dise駉 de investigaci髇. Existen cinco tests _before/after_ y una serie de sucesos o hitos pol韙icos relativos al gobierno que preside Pedro S醤chez. Puede verse que cada test agrupa dos estudios del CIS^[Los estudios numerados del 1 al 6 son respectivamente, los estudios: 3269, 3271, 3273, 3277, 3279, 3281] de los que se muestra la duraci髇 del trabajo de campo correspondiente y su inserci髇 entre sucesos pol韙icos. 
+![timeline](timeline.png)
+De la figura (1) se desprende que es el test 4 el que contiene la ocurrencia del suceso de estudio.
 
 
 

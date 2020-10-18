@@ -5,7 +5,8 @@ source("Scripts/libs.R")
 # Specify and install all the necessary packages
 packages <- (c("weights","haven", "sandwich", "multcomp", "emmeans", 
                "tidyverse", "conflicted", "ggeffects", "splines",
-               "robustbase", "stargazer"))
+               "robustbase", "stargazer", "vistime",
+               "ggrepel", "scales"))
 install_pack(packages)
 
 # Solve conflicts between packages 
