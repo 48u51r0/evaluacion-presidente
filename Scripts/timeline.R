@@ -10,7 +10,7 @@ packages <- (c("weights","haven", "sandwich", "multcomp", "emmeans",
 install_pack(packages)
 
 # para generar los timeline con fechas en español
-Sys.setlocale("LC_TIME", "Spanish")
+Sys.setlocale("LC_ALL", "Spanish")
 
 # leemos el excel con los datos del timeline
 dat <- readxl::read_xlsx("timeline.xlsx")
@@ -34,7 +34,7 @@ gg_vistime(df,
            background_lines = 0,
            col.fontcolor = "fontcol", 
            optimize_y = TRUE,
-           linewidth = 20)+ 
+           linewidth = 10)+ 
   # añadimos lineas de referencia de los hitos
   geom_vline(data = df[df$group == "Hitos", ], 
              mapping = aes(xintercept = start), 
