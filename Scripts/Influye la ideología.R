@@ -14,7 +14,7 @@ source("Scripts/Cargar_datos.R")
 mod_vacio <- "eval_pres ~ man + higher_educ+ welloff"
 mod_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
 mod_ideologia <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
-mod_completo <- "eval_pres ~ RV +ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+mod_completo <- "eval_pres ~ RV*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff"
 
 datos <- bind_rows(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
 # ponderamos los pesos de cada dataset por la contribucion de cada
@@ -34,6 +34,7 @@ datos <- datos %>%
 
 `Vacío` <- lmrob(mod_vacio,
                data = datos,
+               subset = Periodo ==5,
             weights = w)
 Voto <- lmrob(mod_voto,
                data = datos,
@@ -41,7 +42,7 @@ Voto <- lmrob(mod_voto,
 `Ideología` <- lmrob(mod_ideologia,
                      data = datos,
                      weights = w)
-Completo <- lmrob(mod_completo,
+Completo <- lmrob(eval_pres ~ RV*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff,
                data = datos,
                weights = w)
 #-----------------Summary------------------------------------------------------

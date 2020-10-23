@@ -15,40 +15,42 @@ source("Scripts/Cargar_datos.R")
 #generará una salida con dos elementos: df será un data frame con todas las
 #predicciones. pooled será un data set de todos los datos de muestra agrupados
 #por transiciones:enero-febrero, febrero-marzo, marzo-abril...
-predictions <- function(..., significance = 0.99){
+predictions <- function(..., conf_level = 0.99){
   aux <- list(...)
   pooled <- list()
   for (i in seq_len(length(aux)-1)){
+    # definimos los elementos principales y sus pesos en el pooled
     pre <- aux[[i]]
     post <- aux[[i+1]]
+    w_pooled <- sum(pre$PESO, post$PESO)
+    w_pre <- sum(pre$PESO) / w_pooled
+    w_post <- sum(post$PESO) / w_pooled
+    #agregamos en pooled con su variable delta-breakpoint
     pooled[[i]] <- bind_rows(pre, post) %>% 
       mutate(breakpoint = case_when(Periodo == min(Periodo) ~ "Antes",
                                     Periodo == max(Periodo) ~ "Después") %>% 
-               factor()
+               factor(),
+             ponderacion = case_when(breakpoint == "Antes" ~ w_pre,
+                                     breakpoint == "Después" ~ w_post),
+             w = ponderacion * PESO
       )
   }
-  df <<- pooled %>%
+  # con una lista de todos los pooled antes/despues
+  # sacamos la estimación MM
+  # obtenemos la predicción de los efectos marginales
+  df <- pooled %>%
     map(~lmrob(eval_pres ~ breakpoint*ns(ideol_GMC, 3) + man + higher_educ + welloff, 
                data= ., 
-               weights = PESO))  %>% 
-    map(~ggpredict(., c("ideol_GMC[all]", "breakpoint"), ci.lvl = significance)) %>% 
+               weights = w))  %>% 
+    map(~ggpredict(., c("ideol_GMC[all]", "breakpoint"), ci.lvl = conf_level)) %>% 
     map(~as_tibble(.))
   for (i in seq_along(df)){
-    df[[i]] <<- df[[i]] %>% 
-      mutate(transition = case_when(i == 1 ~ "Noviembre-Enero",
-                                    i == 2 ~ "Enero-Febrero",
-                                    i == 3 ~ "Febrero-Marzo ",
-                                    i == 4 ~ "Marzo-Abril",
-                                    i == 5 ~ "Abril-Mayo",
-                                    TRUE ~ "Ampliar el script") %>% 
-               factor(levels = c("Noviembre-Enero",
-                                 "Enero-Febrero",
-                                 "Febrero-Marzo ",
-                                 "Marzo-Abril",
-                                 "Abril-Mayo",
-                                 "Ampliar el script")
-                      )
-             )
+    df[[i]] <- df[[i]] %>% 
+      mutate(test = i %>% 
+               factor(levels = 1:length(df),
+                      labels = paste("Test", 1:length(df))
+               )
+      )
   }
   df <- bind_rows(df)
   rm(pre, post, aux) 
@@ -78,19 +80,50 @@ muestra_pooled <- function(data){
 tmp <- predictions(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
 datos_muestra <- map(tmp$pooled, muestra_pooled)
 
+
+# alternativa con alfa = 0.05 --> mismo resultado que con 0.01
+# tmp <- predictions(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281, 
+#                    significance = 0.95) 
+
 #-----------------Visualización------------------------------------------------
 tmp$df %>% 
-  ggplot(aes(x=x, y=predicted, group = group, color= group))+
+  ggplot(aes(x=x, 
+             y=predicted, 
+             group = group, 
+             color= group))+
   geom_line() +
-  geom_ribbon(aes(ymin= conf.low, ymax=conf.high, fill=group), alpha= .3, colour=NA)+
+  geom_ribbon(aes(ymin = conf.low, 
+                  ymax = conf.high, 
+                  fill = group), 
+              alpha = .3, 
+              colour = NA)+
   guides(color = FALSE,
          size = FALSE)+
   theme(legend.title = element_blank())+
-  facet_wrap(~transition)+
-  theme(legend.position = c(0.85, 0.25)
-          ,legend.background = element_rect(fill = "white", colour = NA))
-
-#-----------------Comprobación medias por periodos-----------------------------
+  facet_grid(~test)+
+  labs(x = "Autoubicación ideológica centrada en la media del periodo",
+       y = "Valoración Presidente (1-10)")+
+  scale_color_manual(breaks = c("Antes", "Después"),
+                     values=c("grey62", "grey11"))+
+  scale_fill_manual(breaks = c("Antes", "Después"),
+                    values=c("grey62", "grey11"))+
+  theme(legend.position = c(0.87, 0.1),
+        legend.background = element_rect(fill = "white", 
+                                         colour = NA),
+        panel.background = element_blank(),
+        panel.border =element_rect(colour = "black", 
+                                   fill = NA, 
+                                   size = 1),
+        panel.grid.major = element_line(colour = "lightgrey", 
+                                        size = .15),
+        strip.background = element_rect(color = "black", 
+                                        fill = "white", 
+                                        size = 1, 
+                                        linetype = "solid"),
+        strip.text.x = element_text(size = 12, 
+                                    face = "bold")
+  )
+#--------------Medias por periodos-----------------------------
 
 # Comprobamos las diferencias de medias entre periodos para 
 # descartar que los valores de ideologia centrados en la media 

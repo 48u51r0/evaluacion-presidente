@@ -14,10 +14,11 @@ mod0 <- "eval_pres~man+higher_educ+welloff"
 mod1 <- "eval_pres~ideol_GMC + man+higher_educ+welloff"
 mod2 <- "eval_pres~ideol_GMC + ideol_2  + man+higher_educ+welloff"
 mod3 <- "eval_pres~ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
+mod4 <- "eval_pres~RV+man+higher_educ+welloff"
 
 #function to apply the likelihood ratio test
 lrt <- function(data = data){
-  models <- list("mod0" = mod0 ,"mod1" = mod1,"mod2"= mod2, "mod3"=mod3) %>% 
+  models <- list("mod0" = mod0 ,"mod1" = mod1,"mod2"= mod2, "mod3"=mod3, "mod4"=mod4) %>% 
     map(~lm(.,
             data = data,
             weights = PESO)
@@ -26,24 +27,55 @@ lrt <- function(data = data){
   tmp2 <- lmtest::lrtest(models$mod1, models$mod2)
   tmp3 <- lmtest::lrtest(models$mod2, models$mod3)
   tmp4 <- lmtest::lrtest(models$mod1, models$mod3)
+  tmp5 <- lmtest::lrtest(models$mod3, models$mod4)
+  tmp6 <- lmtest::lrtest(models$mod0, models$mod3)
+  tmp7 <- lmtest::lrtest(models$mod0, models$mod4)
+  # substitute returns an object name as a string
   message(substitute(data), ":p-val para mod0 versus mod1: ", tmp1$`Pr(>Chisq)`[2])
   message(substitute(data), ":p-val para mod1 versus mod2: ", tmp2$`Pr(>Chisq)`[2])
   message(substitute(data), ":p-val para mod2 versus mod3: ", tmp3$`Pr(>Chisq)`[2])
   message(substitute(data), ":p-val para mod1 versus mod3: ", tmp4$`Pr(>Chisq)`[2])
+  message(substitute(data), ":p-val para mod3 versus mod4: ", tmp5$`Pr(>Chisq)`[2])
+  message(substitute(data), ":p-val para mod0 versus mod3: ", tmp6$`Pr(>Chisq)`[2])
+  message(substitute(data), ":p-val para mod0 versus mod4: ", tmp7$`Pr(>Chisq)`[2])
 }
-#probamos qué modelo es más óptimo
-lrt(df_3269)
-lrt(df_3271)
-lrt(df_3273)
-lrt(df_3277)
-lrt(df_3279)
-lrt(df_3281)
 #Se ha probado con todos los data_Sets por separado, 
 #para todos los casos el modelo ampliado es mejor que el restringido.
 #las excepciones han sido a partir del confinamiento ya que el modelo cuadrático
 #era peor que el model lineal. Sin embargo, como el cúbico era mejor que el lineal
 #usaré término cúbico (ideo_3)
-rm(list = c("mod0", "mod1", "mod2"))
+
+# Función para extraer la R2 ajustada  de cada modelo y conjunto de datos
+adj_r2 <- function(data = data){
+  models <- list("mod0" = mod0 ,"mod1" = mod1,"mod2"= mod2, "mod3"=mod3, "mod4"=mod4) %>% 
+    map(~lm(.,
+            data = data,
+            weights = PESO)
+    )
+  tmp0 <- summary(models$mod0)$adj.r.squared
+  tmp1 <- summary(models$mod1)$adj.r.squared
+  tmp2 <- summary(models$mod2)$adj.r.squared
+  tmp3 <- summary(models$mod3)$adj.r.squared
+  tmp4 <- summary(models$mod4)$adj.r.squared
+  # substitute returns an object name as a string
+  message(substitute(data), ":Adj_R2 mod0: ", tmp0)
+  message(substitute(data), ":Adj_R2 mod1: ", tmp1)
+  message(substitute(data), ":Adj_R2 mod2: ", tmp2)
+  message(substitute(data), ":Adj_R2 mod3: ", tmp3)
+  message(substitute(data), ":Adj_R2 mod4: ", tmp4)
+}
+#probamos qué modelo es más óptimo
+adj_r2(df_3269)
+adj_r2(df_3271)
+adj_r2(df_3273)
+adj_r2(df_3277)
+adj_r2(df_3279)
+adj_r2(df_3281)
+# sistematicamente todos los modelos explican más varianza que el modelo vacío de controles
+# el modelo completo de ideologia explica siempre menos que el modelo de Recuerdo de voto
+# utilizamos la R2 ajustada para evitar la inflación de var explicada por añadir predictores
+
+rm(list = c("mod0", "mod1", "mod2", "mod3", "mod4"))
 
 #-----------------Function to run Chow tests (Lee, 2008)--------------------------------
 
@@ -155,17 +187,25 @@ chow_dummy <- function(pre,
                        restricted, 
                        unrestricted, 
                        significance = .05){
-  #definimos el pooled data set con una dummy de punto discontinuidad
+  #definimos el peso de los df en el pooled
+  w_pooled <- sum(pre$PESO, post$PESO)
+  w_pre <- sum(pre$PESO) / w_pooled
+  w_post <- sum(post$PESO) / w_pooled
+  # definimos el pooled data set con una dummy de punto discontinuidad
+  # ponderamos el peso de acuerdo al peso que cada df aporta a pooled
   pooled <- bind_rows(pre, post) %>% 
     mutate(breakpoint = case_when(Periodo == min(Periodo) ~ 0,
                                   Periodo == max(Periodo) ~ 1) %>% 
-             factor()
+             factor(),
+           ponderacion = case_when(breakpoint == 0 ~ w_pre,
+                                   breakpoint == 1 ~ w_post),
+           w = ponderacion * PESO
     )
   #definimos los modelos lineales y robusto
   lin_restr_pre <- lm(restricted, data = pre, weights = PESO)
   lin_restr_post <- lm(restricted, data = post, weights = PESO)
-  lin_unrestr <- lm(unrestricted, data = pooled, weights = PESO)
-  robust_unrestr <- robustbase::lmrob(unrestricted, data = pooled, weights = PESO)
+  lin_unrestr <- lm(unrestricted, data = pooled, weights = w)
+  robust_unrestr <- robustbase::lmrob(unrestricted, data = pooled, weights = w)
   #definimos las matrices de hipótesis (multcomp)
   k_restr <- read_rds("k_chow.rds") #Solo los coeficientes con la dummy son = 0
   k_unrestr <- cbind(diag(length(coef(robust_unrestr)))) #todos los coeficientes = 0
@@ -280,6 +320,14 @@ aux3 <- chow_dummy(df_3273, df_3277, mod3_restr, mod3_unrestr, significance = 0.
 aux4 <- chow_dummy(df_3277, df_3279, mod3_restr, mod3_unrestr, significance = 0.01)
 aux5 <- chow_dummy(df_3279, df_3281, mod3_restr, mod3_unrestr, significance = 0.01)
 
+# Alternativa con un alfa = 0.05
+aux1 <- chow_dummy(df_3269, df_3271, mod3_restr, mod3_unrestr, significance = .05)
+aux2 <- chow_dummy(df_3271, df_3273, mod3_restr, mod3_unrestr, significance = .05)
+aux3 <- chow_dummy(df_3273, df_3277, mod3_restr, mod3_unrestr, significance = .05)
+aux4 <- chow_dummy(df_3277, df_3279, mod3_restr, mod3_unrestr, significance = .05)
+aux5 <- chow_dummy(df_3279, df_3281, mod3_restr, mod3_unrestr, significance = .05)
+
+
 #hay una discontinuidad en aux2 al 0.05 pero no al 0.01
 #hay una discontinuidad en aux4 
 
@@ -305,26 +353,74 @@ aux5$maxt_robust <- within(aux5$maxt_robust, {periodo <- 5})
 bind_rows(aux1$maxt_robust, aux2$maxt_robust, aux3$maxt_robust, aux4$maxt_robust, aux5$maxt_robust) %>% 
   mutate(periodo = factor(periodo, 
                           levels= 1:5,
-                          labels = c("Enr", "Feb", "Mar", "Abr", "May")
+                          labels = paste("Test", 1:5)
                           ),
          facet = `Parámetro` %>% 
            #hay que cambiar las formulas de las etiquetas. solo ejemplo
            #https://rstudio-pubs-static.s3.amazonaws.com/136237_170402e5f0b54561bf7605bdea98267a.html
            #to write powers like 2^3 --> 2^{3}
            factor(levels = unique(aux1$maxt_robust$`Parámetro`),
-                  labels = c("tau", "tau*beta[1]",
-                             "tau*beta[2]", "tau*beta[3]")
-                  )
+                  labels = c("tau[0]", "tau[1]",
+                             "tau[2]", "tau[3]")
+                  ),
+         label = case_when(`P ajustado` <= .05 & `P ajustado` >0.01  ~ "*",
+                           `P ajustado` <= .01 & `P ajustado` >0.001 ~ "**",
+                           `P ajustado` <= .001                      ~ "***",
+                           TRUE                                      ~ "")
          ) %>% 
+  ggplot(aes(x = periodo, 
+             y = Beta, 
+             group =  `Parámetro`)) + 
+  geom_point() + 
+  geom_text(aes(label = label),
+            hjust = 1.5, 
+            vjust = 0)+
+  geom_errorbar(aes(ymin=`IC inferior`, 
+                    ymax=`IC superior`, 
+                    width = .1)) + 
+  geom_hline(yintercept = 0, 
+             colour = "red", 
+             linetype = "dashed") +
+  geom_vline(xintercept = 3.5, 
+             colour = "darkblue", 
+             linetype = "dotted", 
+             size = 1) + 
+  labs(x = "",
+       y = "Valor coeficientes \u03c4 con IC = 99%")+
+  facet_wrap(.~facet, 
+             scales = "free", 
+             labeller = label_parsed)
+
+# Repetimos el analisis con la estimación de la matriz var- cov sandwich
+
+#los datos del posteletoral y el barómetro de enero
+aux1$maxt_linear <- within(aux1$maxt_linear, {test <- 1})
+aux2$maxt_linear <- within(aux2$maxt_linear, {test <- 2})
+aux3$maxt_linear <- within(aux3$maxt_linear, {test <- 3})
+aux4$maxt_linear <- within(aux4$maxt_linear, {test <- 4})
+aux5$maxt_linear <- within(aux5$maxt_linear, {test <- 5})
+#fusionamos
+bind_rows(aux1$maxt_linear, aux2$maxt_linear, aux3$maxt_linear, aux4$maxt_linear, aux5$maxt_linear) %>% 
+  mutate(test = factor(test, 
+                          levels= 1:5,
+                          labels = c("Test 1", "Test 2", "Test 3", "Test 4", "Test 5")
+  ),
+  facet = `Parámetro` %>% 
+    #hay que cambiar las formulas de las etiquetas. solo ejemplo
+    #https://rstudio-pubs-static.s3.amazonaws.com/136237_170402e5f0b54561bf7605bdea98267a.html
+    #to write powers like 2^3 --> 2^{3}
+    factor(levels = unique(aux1$maxt_linear$`Parámetro`),
+           labels = c("tau[0]", "tau[1]",
+                      "tau[2]", "tau[3]")
+    )
+  ) %>% 
   ggplot(aes(x = periodo, y = Beta, group =  `Parámetro`)) + 
-  geom_line() + 
   geom_point() + 
   geom_errorbar(aes(ymin=`IC inferior`, ymax=`IC superior`, width = .1)) + 
   geom_hline(yintercept = 0, colour = "red", linetype = "dashed") +
   geom_vline(xintercept = 3.5, colour = "darkblue", linetype = "dotted", size = 1) +
   facet_wrap(.~facet, scales = "free", labeller = label_parsed)
-
-
+# resultado más favorable con sandwich
 
 #-----------------Test QLR------------------------------------------------
 #Este test sirve para detectar en qué momento o parte de un dataset hay

@@ -1,15 +1,17 @@
-#-----------------Loading datasets------------------------------------------
+#-----------------Start up------------------------------------------
+#3269:Postelectoral
+#3271:Enero
+#3273:Febrero
+#3277:Marzo
+#3279:Abril
+#3281:Mayo
 
-df_3269 <- read_rds("df_3269.rds")
-df_3271 <- read_rds("df_3271.rds")
-df_3273 <- read_rds("df_3273.rds")
-df_3277 <- read_rds("df_3277.rds")
-df_3281 <- read_rds("df_3279.rds")
-
+#Loading all the necessary packages and datasets
+source("Scripts/Cargar_datos.R")
 
 #-----------------Visualising trends-----------------------------------------
 ggplot(data = df_3273, 
-       mapping = aes(x= ideol, 
+       mapping = aes(x= ideol_pers, 
                      y = eval_pres, 
                      col= RV))+
   geom_jitter(width = 0.2, height = 0.2)+
@@ -32,13 +34,13 @@ ggplot(data = df_3269,
                 aes(weight = PESO),
               formula = y~poly(x, 3), col= "blue")
 #Alternativas de modelo 
-a<-lm(eval_pres~distideo_GMC+distideo_2+man+higher_educ+welloff,
+a<-lmrob(eval_pres~ideol_GMC+man+higher_educ+welloff,
       data= df_3269,
       weights = PESO)
-b<-lm(eval_pres~distideo_GMC+distideo_2+RV+man+higher_educ+welloff,
+b<-lmrob(eval_pres~RV+man+higher_educ+welloff,
       data= df_3269,
       weights = PESO)
-c<-lm(eval_pres~distideo_GMC*RV+distideo_2*RV+RV+man+higher_educ+welloff,
+c<-lmrob(eval_pres~ideol_GMC*RV+man+higher_educ+welloff,
       data= df_3269,
       weights = PESO)
 #podemos hacer LRT para probar la conveniencia de añadir variables
