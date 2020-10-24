@@ -18,8 +18,10 @@ masked_functions <- function(...){
 #--------------------Load all the datasets generated---------------------------
 
 load_data <- function(start_w){
+  # Quitamos la extensión de los nombres de archivos que buscamos
   aux <- str_remove(Sys.glob(paste0(start_w, "*")), ".rds")
   for (i in seq_along(aux)){
+    # asignamos los archivos a los nombres de objetos anteriores
     assign(aux[i], 
            read_rds(Sys.glob('df_*')[i]),
            envir = .GlobalEnv)

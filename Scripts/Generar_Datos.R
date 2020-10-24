@@ -44,73 +44,118 @@ df_3269 <- read_rds("backup_3269.rds") %>%
   mutate(id = as.numeric( 
     paste0(as.character(ESTU), 
            as.character(CUES))
-  ),                                              #(id)entificación exclusiva de cada caso
+  ),                                              
   Periodo = 1,
-  RV = case_when(B22R %in% c(5, 6, 21,67) ~ 5, #UP
-                 B22R %in% c(7, 50) ~ 7,       #+P
-                 B22R == 1 ~ 1, #PP
-                 B22R == 2 ~ 2, #PSOE
-                 B22R == 4 ~ 4, #Cs
-                 B22R == 18 ~ 18, #VOX
-                 B22R >= 96 ~ NA_real_, #
-                 TRUE ~ 99) %>% #otros
-    factor(levels = c(1, 2, 4, 5, 7, 18, 99),
-           labels = c("PP", "PSOE", "Cs", "UP", "MP","VOX", "Otros")
+  RV = case_when(
+    B22R %in% c(5, 6, 21,67) ~ 5, #UP
+    B22R %in% c(7, 50)       ~ 7,       #+P
+    B22R == 1                ~ 1, #PP
+    B22R == 2                ~ 2, #PSOE
+    B22R == 4                ~ 4, #Cs
+    B22R == 18               ~ 18, #VOX
+    B22R >= 96               ~ NA_real_, #
+    TRUE                     ~ 99 #otros
     ) %>% 
+    factor(
+      levels = c(1, 2, 4, 5, 7, 18, 99),
+      labels = c("PP", "PSOE", "Cs", "UP", "MP","VOX", "Otros")
+      ) %>% 
     relevel(7),
-  eval_pres = case_when(as.numeric(B29_1)  %in% c(97, 98, 99) ~ NA_real_,
-                        TRUE ~ as.numeric(B29_1)),
-  evalpres_GMC = eval_pres - weighted.mean(w = PESO, x = eval_pres, na.rm = TRUE),
-  B29_2 = case_when(as.numeric(B29_2) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_2)),
-  B29_3 = case_when(as.numeric(B29_3) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_3)),
-  B29_4 = case_when(as.numeric(B29_4) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_4)),
-  B29_5 = case_when(as.numeric(B29_5) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_5)),
-  B29_6 = case_when(as.numeric(B29_6) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_6)),
-  B29_7 = case_when(as.numeric(B29_7) %in% c(97, 98, 99) ~ NA_real_,
-                    TRUE ~ as.numeric(B29_7)),
+  eval_pres = case_when(
+    as.numeric(B29_1)  %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                  ~ as.numeric(B29_1)
+    ),
+  evalpres_GMC = eval_pres - weighted.mean(w = PESO, 
+                                           x = eval_pres, 
+                                           na.rm = TRUE),
+  B29_2 = case_when(
+    as.numeric(B29_2) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                 ~ as.numeric(B29_2)),
+  B29_3 = case_when(
+    as.numeric(B29_3) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                 ~ as.numeric(B29_3)
+    ),
+  B29_4 = case_when(
+    as.numeric(B29_4) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE ~ as.numeric(B29_4)
+    ),
+  B29_5 = case_when(
+    as.numeric(B29_5) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                 ~ as.numeric(B29_5)
+    ),
+  B29_6 = case_when(
+    as.numeric(B29_6) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                 ~ as.numeric(B29_6)
+    ),
+  B29_7 = case_when(
+    as.numeric(B29_7) %in% c(97, 98, 99) ~ NA_real_,
+    TRUE ~ as.numeric(B29_7)
+    ),
   eval_opos = pmax(B29_2, B29_3, B29_4, B29_5, B29_6, B29_7, na.rm = TRUE),
-  ideol_pers = case_when(as.numeric(C3)  %in% c(97, 98, 99) ~ NA_real_,
-                         TRUE ~ as.numeric(C3)),
-  ideol_GMC = ideol_pers - weighted.mean(w = PESO, x = ideol_pers, na.rm = TRUE),
+  ideol_pers = case_when(
+    as.numeric(C3)  %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                               ~ as.numeric(C3)
+    ),
+  ideol_GMC = ideol_pers - weighted.mean(w = PESO, 
+                                         x = ideol_pers, 
+                                         na.rm = TRUE),
   ideol_2 = ideol_GMC^2,
   ideol_3 = ideol_GMC^3,
-  ideol_pres = case_when(as.numeric(C5_1)  %in% c(97, 98, 99) ~ NA_real_,
-                         TRUE ~ as.numeric(C5_1)),
-  ideolpres_GMC = ideol_pres - weighted.mean(w = PESO, x = ideol_pres, na.rm = TRUE),
+  ideol_pres = case_when(
+    as.numeric(C5_1)  %in% c(97, 98, 99) ~ NA_real_,
+    TRUE                                 ~ as.numeric(C5_1)),
+  ideolpres_GMC = ideol_pres - weighted.mean(w = PESO, 
+                                             x = ideol_pres, 
+                                             na.rm = TRUE),
   dist_ideo = ideol_pers - ideol_pres,
-  distideo_GMC= dist_ideo - weighted.mean(w = PESO, x = dist_ideo, na.rm = TRUE),
+  distideo_GMC= dist_ideo - weighted.mean(w = PESO, 
+                                          x = dist_ideo, 
+                                          na.rm = TRUE),
   dist_eval = eval_pres - eval_opos,
   distideo_2 = distideo_GMC^2,
   distideo_3 = distideo_GMC^3,
-  man = case_when(C9 == 1 ~ 1L,
-                  C9 == 2 ~ 0L,
-                  TRUE ~ NA_integer_) %>%  
+  man = case_when(
+    C9 == 1 ~ 1L,
+    C9 == 2 ~ 0L,
+    TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
-    ) %>% 
-    relevel(2),
-  higher_educ = case_when(C11A %in% c(1:7, 16) ~ 0L,
-                          C11A %in% 8:15 ~ 1L,
-                          TRUE ~ NA_integer_) %>% 
+           ) %>% 
+    relevel(1),
+  higher_educ = case_when(
+    C11A %in% c(1:7, 16) ~ 1L,
+    C11A %in% 8:15 ~ 0L,
+    TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
-    ) %>% 
-    relevel(2),
-  welloff = case_when(C21 %in% 1:3 ~ 1L, #high, middle-high, middle-middle
-                      C21 %in% 4:12 ~ 0L,
-                      TRUE ~ NA_integer_) %>% 
+           labels = c("No-Universitario", "Universitario")
+           ) %>% 
+    relevel(1),
+  welloff = case_when(
+    C21 %in% 1:3 ~ 1L, #high, middle-high, middle-middle
+    C21 %in% 4:12 ~ 0L,
+    TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
-    ) %>% 
-    relevel(2)
+           labels = c("Bajo", "Medio-alto")
+           ) %>% 
+    relevel(1),
+  # partidismo laxo
+  partidismo_1 = case_when(
+    C6 %in% 1:2 ~ 1L, 
+    C6 %in% 3   ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+           ) %>% 
+    relevel(1),
+  # partidismo estricto
+  partidismo_2 = case_when(
+    C6 %in% 1   ~ 1L,
+    C6 %in% 2:3 ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1) 
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>% 
   write_rds("df_3269.rds")
 # 2. Enero---------------------------------------------------------------------
 df_3271 <- read_rds("backup_3271.rds") %>% 
@@ -166,26 +211,38 @@ df_3271 <- read_rds("backup_3271.rds") %>%
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
     ) %>% 
-    relevel(2),
-  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 0L,
-                          NIVELESTENTREV %in% 8:15 ~ 1L,
+    relevel(1),
+  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 1L,
+                          NIVELESTENTREV %in% 8:15 ~ 0L,
                           TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
+           labels = c("No-Universitario", "Universitario")
     ) %>% 
-    relevel(2),
+    relevel(1),
   welloff = case_when(CLASESOCIAL %in% 1:3 ~ 1L, #high, middle-high, middle-middle
                       CLASESOCIAL %in% 4:12 ~ 0L,
                       TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
+           labels = c("Bajo", "Medio-alto")
     ) %>% 
-    relevel(2)
-  ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, 
-         ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, 
-         distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>% 
+    relevel(1),
+  partidismo_1 = case_when(
+    FIDEVOTO %in% 1:2 ~ 1L,
+    FIDEVOTO %in% 3   ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% 
+    relevel(1),
+  partidismo_2 = case_when(
+    FIDEVOTO %in% 1   ~ 1L,
+    FIDEVOTO %in% 2:3 ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% 
+    relevel(1)
+  ) %>%
   write_rds("df_3271.rds")
 
 
@@ -244,26 +301,36 @@ df_3273 <- read_rds("backup_3273.rds") %>%
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
     ) %>% 
-    relevel(2),
-  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 0L,
-                          NIVELESTENTREV %in% 8:15 ~ 1L,
+    relevel(1),
+  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 1L,
+                          NIVELESTENTREV %in% 8:15 ~ 0L,
                           TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
+           labels = c("No-Universitario", "Universitario")
     ) %>% 
-    relevel(2),
+    relevel(1),
   welloff = case_when(CLASESOCIAL %in% 1:3 ~ 1L, #high, middle-high, middle-middle
                       CLASESOCIAL %in% 4:12 ~ 0L,
                       TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
+           labels = c("Bajo", "Medio-alto")
     ) %>% 
-    relevel(2)
+    relevel(1),
+  partidismo_1 = case_when(
+    FIDEVOTO %in% 1:2 ~ 1L,
+    FIDEVOTO %in% 3   ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1),
+  partidismo_2 = case_when(
+    FIDEVOTO %in% 1   ~ 1L,
+    FIDEVOTO %in% 2:3 ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, 
-         ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, 
-         distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>%
   write_rds("df_3273.rds")
 
 # 3. Marzo---------------------------------------------------------------------
@@ -320,24 +387,36 @@ df_3277 <- read_rds("backup_3277.rds") %>%
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
     ) %>% 
-    relevel(2),
-  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 0L,
-                          NIVELESTENTREV %in% 8:15 ~ 1L,
+    relevel(1),
+  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 1L,
+                          NIVELESTENTREV %in% 8:15 ~ 0L,
                           TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
+           labels = c("No-Universitario", "Universitario")
     ) %>% 
-    relevel(2),
+    relevel(1),
   welloff = case_when(CLASESOCIAL %in% 1:3 ~ 1L, #high, middle-high, middle-middle
                       CLASESOCIAL %in% 4:12 ~ 0L,
                       TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
+           labels = c("Bajo", "Medio-alto")
     ) %>% 
-    relevel(2)
+    relevel(1),
+  partidismo_1 = case_when(
+    FIDEVOTO %in% 1:2 ~ 1L,
+    FIDEVOTO %in% 3   ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1),
+  partidismo_2 = case_when(
+    FIDEVOTO %in% 1   ~ 1L,
+    FIDEVOTO %in% 2:3 ~ 0L,
+    TRUE        ~ NA_integer_) %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>%
   write_rds("df_3277.rds")
 
 # 4. Abril---------------------------------------------------------------------
@@ -393,32 +472,38 @@ df_3279 <- read_rds("backup_3279.rds") %>%
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
     ) %>% 
-    relevel(2),
-  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 0L,
-                          NIVELESTENTREV %in% 8:15 ~ 1L,
+    relevel(1),
+  higher_educ = case_when(NIVELESTENTREV %in% c(1:7, 16) ~ 1L,
+                          NIVELESTENTREV %in% 8:15 ~ 0L,
                           TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
+           labels = c("No-Universitario", "Universitario")
     ) %>% 
-    relevel(2),
+    relevel(1),
   welloff = case_when(CLASESOCIAL %in% 1:3 ~ 1L, #high, middle-high, middle-middle
                       CLASESOCIAL %in% 4:12 ~ 0L,
                       TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
+           labels = c("Bajo", "Medio-alto")
     ) %>% 
-    relevel(2)
+    relevel(1),
+  partidismo_1 = NA_integer_ %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1),
+  partidismo_2 = NA_integer_ %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>%
   write_rds("df_3279.rds")
 # 5. Mayo----------------------------------------------------------------------
 
 df_3281 <- read_rds("backup_3281.rds") %>% 
-  mutate(id = as.numeric(
-    paste0(as.character(ESTUDIO), 
-           as.character(CUES))
-  ),
+  mutate(id = as.numeric(paste0(as.character(ESTUDIO), 
+                                as.character(CUES)
+                                )
+                         ),
   PESO = 1,
   Periodo = 6,
   RV = case_when(RECUVOTOGR %in% c(5, 6, 21,67) ~ 5, #UP
@@ -465,24 +550,32 @@ df_3281 <- read_rds("backup_3281.rds") %>%
     factor(levels = c(0, 1),
            labels = c("Mujer", "Hombre")
     ) %>% 
-    relevel(2),
-  higher_educ = case_when(NIVELESTENTREV %in% c(1:8, 17) ~ 0L,
-                          NIVELESTENTREV %in% 9:16 ~ 1L,
+    relevel(1),
+  higher_educ = case_when(NIVELESTENTREV %in% c(1:8, 17) ~ 1L,
+                          NIVELESTENTREV %in% 9:16 ~ 0L,
                           TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Universitario", "No-Universitario")
+           labels = c("No-Universitario", "Universitario")
     ) %>% 
-    relevel(2),
+    relevel(1),
   welloff = case_when(CLASESOCIAL %in% 1:3 ~ 1L, #high, middle-high, middle-middle
                       CLASESOCIAL %in% 4:11 ~ 0L,
                       TRUE ~ NA_integer_) %>% 
     factor(levels = c(0, 1),
-           labels = c("Medio-alto", "Bajo")
+           labels = c("Bajo", "Medio-alto")
     ) %>% 
-    relevel(2)
+    relevel(1),
+  partidismo_1 = NA_integer_ %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1),
+  partidismo_2 = NA_integer_ %>% 
+    factor(levels = c(0, 1),
+           labels = c("No leal", "Leal")
+    ) %>% relevel(1)
   ) %>% 
-  select(id, Periodo, dist_eval, eval_pres, evalpres_GMC, eval_opos, ideol_pers,ideol_GMC, ideol_2, ideol_3, distideo_GMC, distideo_2, distideo_3, RV, man, higher_educ, welloff, PESO) %>% 
-  drop_na() %>%
   write_rds("df_3281.rds")
 #---------------Eliminamos objetos del Global Environment---------------------------------------
-rm(list = c("backup_3269", "backup_3271", "backup_3273", "backup_3277", "backup_3279", "backup_3281"))
+rm(list=c(ls(pattern = "backup_"), ls(pattern = "df_")))
+
+   
