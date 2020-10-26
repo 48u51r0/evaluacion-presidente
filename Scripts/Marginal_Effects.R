@@ -1,10 +1,4 @@
 #-----------------Start up-----------------------------------------------------
-#3269:Postelectoral
-#3271:Enero
-#3273:Febrero
-#3277:Marzo
-#3279:Abril
-#3281:Mayo
 
 #Loading all the necessary packages and datasets
 source("Scripts/Cargar_datos.R")
@@ -16,7 +10,7 @@ source("Scripts/Cargar_datos.R")
 #generará una salida con dos elementos: df será un data frame con todas las
 #predicciones. pooled será un data set de todos los datos de muestra agrupados
 #por transiciones:enero-febrero, febrero-marzo, marzo-abril...
-predictions <- function(..., conf_level = 0.99){
+predictions <- function(..., conf_level = 0.95){
   aux <- list(...)
   pooled <- list()
   for (i in seq_len(length(aux)-1)){
@@ -39,10 +33,11 @@ predictions <- function(..., conf_level = 0.99){
   # con una lista de todos los pooled antes/despues
   # sacamos la estimación MM
   # obtenemos la predicción de los efectos marginales
-  df <- pooled %>%
+  modelos <- pooled %>%
     map(~lmrob(eval_pres ~ breakpoint*ns(ideol_GMC, 3) + man + higher_educ + welloff, 
                data= ., 
-               weights = w))  %>% 
+               weights = w)) 
+  df <- modelos %>% 
     map(~ggpredict(., c("ideol_GMC[all]", "breakpoint"), ci.lvl = conf_level)) %>% 
     map(~as_tibble(.))
   for (i in seq_along(df)){
@@ -54,8 +49,23 @@ predictions <- function(..., conf_level = 0.99){
       )
   }
   df <- bind_rows(df)
+  r2_ajustado <- modelos %>% 
+    map_dbl(~summary(.)$adj.r.squared)
+  Ns <- tmp$pooled %>% 
+    map(~group_by(., breakpoint) %>% 
+          summarise(n=n()) %>% 
+          ungroup()
+        )
+  anotacion <- tibble(test = paste("Test", 1:5),
+                      r2 = r2_ajustado,
+                      N = Ns %>% map_int(~sum(.$n))
+                      #N_antes = Ns %>% 
+                      #  map_int(~unname(unlist(.))[3]),
+                      #N_despues = Ns %>% 
+                      #  map_int(~unname(unlist(.))[4])
+                      )
   rm(pre, post, aux) 
-  salida <- list(df = df, pooled = pooled)
+  salida <- list(df = df, pooled = pooled, anotacion = anotacion)
   return(salida)
 }
 
@@ -79,6 +89,7 @@ muestra_pooled <- function(data){
 }
 
 tmp <- predictions(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
+
 datos_muestra <- map(tmp$pooled, muestra_pooled)
 
 
@@ -86,43 +97,67 @@ datos_muestra <- map(tmp$pooled, muestra_pooled)
 # tmp <- predictions(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281, 
 #                    significance = 0.95) 
 
-#-----------------Visualización------------------------------------------------
-tmp$df %>% 
+#--------------Visualización------------------------------------------------
+tmp$df %>%
+  filter(!test %in% c("Test 1", "Test 2")) %>%
+  mutate(test = fct_drop(test)) %>% 
   ggplot(aes(x=x, 
              y=predicted, 
              group = group, 
-             color= group))+
+             color= group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, 
                   ymax = conf.high, 
                   fill = group), 
               alpha = .3, 
-              colour = NA)+
+              colour = NA) +
   guides(color = FALSE,
-         size = FALSE)+
-  theme(legend.title = element_blank())+
-  facet_grid(~test)+
+         size = FALSE) +
+  theme(legend.title = element_blank()) +
+  geom_text(data = tmp$anotacion[!tmp$anotacion$test %in% c("Test 1", "Test 2"),], 
+            mapping = aes(label = paste("R[ajustado]^2 == ", round(r2,3))),
+            x = 1.4, y = 7.3,
+            hjust=0,
+            parse = TRUE, 
+            inherit.aes = FALSE)+
+  geom_text(data = tmp$anotacion %>% 
+              filter(!test %in% c("Test 1", "Test 2")), 
+            mapping = aes(label = paste("N = ", N)),
+            x = 1.4, y = 6.8,
+            hjust=0, 
+            inherit.aes = FALSE)+
+  #geom_text(data = tmp$anotacion, 
+  #          mapping = aes(label = paste("N[`Después`] == ", N_despues)),
+  #          x = 1.4, y = 6.3,
+  #          hjust=0,
+  #          parse = TRUE, 
+  #          inherit.aes = FALSE)+
+  facet_grid(~test) +
   labs(x = "Autoubicación ideológica centrada en la media del periodo",
-       y = "Valoración Presidente (1-10)")+
+       y = "Valoración Presidente (1-10)") +
   scale_color_manual(breaks = c("Antes", "Después"),
-                     values=c("grey62", "grey11"))+
+                     values=c("grey62", "grey11")
+                     ) +
   scale_fill_manual(breaks = c("Antes", "Después"),
-                    values=c("grey62", "grey11"))+
-  theme(legend.position = c(0.87, 0.1),
+                    values=c("grey62", "grey11")
+                    ) +
+  theme(legend.position = c(0.75, 0.1),
         legend.background = element_rect(fill = "white", 
                                          colour = NA),
         panel.background = element_blank(),
         panel.border =element_rect(colour = "black", 
                                    fill = NA, 
                                    size = 1),
-        panel.grid.major = element_line(colour = "lightgrey", 
-                                        size = .15),
+        #panel.grid.major = element_line(colour = "lightgrey", 
+        #                                size = .15),
+        panel.grid.major = element_blank(),
         strip.background = element_rect(color = "black", 
                                         fill = "white", 
                                         size = 1, 
                                         linetype = "solid"),
         strip.text.x = element_text(size = 12, 
-                                    face = "bold")
+                                    face = "bold"),
+        axis.title=element_text(size=14)
   )
 #--------------Medias por periodos-----------------------------
 
@@ -164,11 +199,11 @@ diff_means(df_3269,df_3271,df_3273,df_3277,df_3279,df_3281)
 # las medias ideologia por periodos son (4.58, 4.48, 4.57, 4.58, 4.68, 4.53)
 
 #-----------------Restos para borrar-------------------------------------------
-ggplot()+
+ggplot() +
   geom_point(data=aux, 
              mapping=aes(x=x, y=predicted, size=prop, color = group), 
-             alpha = 0.2)+
-  geom_jitter(width = 0.5, height = -0.5)+
+             alpha = 0.2) +
+  geom_jitter(width = 0.5, height = -0.5) +
   geom_line(pred, 
             mapping=aes(x=x, y=predicted,group = group, color= group)) +
   geom_ribbon(pred, 
@@ -176,5 +211,5 @@ ggplot()+
                           ymin= conf.low, ymax=conf.high, fill=group),
               alpha= .3, colour=NA) +
   guides(color = FALSE,
-         size = FALSE)+
+         size = FALSE) +
   theme(legend.title = element_blank())

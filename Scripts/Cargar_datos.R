@@ -10,7 +10,7 @@ packages <- (c("weights","haven", "sandwich", "multcomp", "emmeans",
 install_pack(packages)
 
 # Solve conflicts between packages 
-masked_functions()
+masked_functions("stats")
 
 # Load data sets the name of which starts with "df_"
 load_data("df_")
@@ -18,7 +18,7 @@ load_data("df_")
 #definimos las variables a utilizar
 vars <- rlang::quo(c(id, Periodo, 
                      eval_pres, 
-                     ideol_GMC, ideol_2, ideol_3,
+                     ideol_pers, ideol_GMC, ideol_2, ideol_3,
                      RV, partidismo_1, partidismo_2,
                      man, higher_educ, welloff,
                      PESO)
@@ -33,12 +33,14 @@ for (i in seq_along(dfs)){
          # get toma un string nombre de un objeto y lo transforma en dicho objeto
          value = get(dfs[i]) %>% 
            # selecciona las vars
-           select(!!vars)) %>% 
-    # elimina las columnas que solo contiene NA
-    select_if(~!all(is.na(.))) %>% 
-    # elimina las filas con algún
-    drop_na()
+           select(!!vars) %>%  
+           # elimina las columnas que solo contiene NA
+           select_if(~!all(is.na(.))) %>%
+           # elimina las filas con algún
+           drop_na()
+    )
 }
 
 # Clean auxiliary functions(lsf.str) and objects
 rm(list = c(lsf.str(), "packages","vars", "dfs"))
+

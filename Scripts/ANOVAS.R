@@ -1,11 +1,5 @@
 #-----------------Loading datasets------------------------------------------
-
-df_3269 <- read_rds("df_3269.rds")
-df_3271 <- read_rds("df_3271.rds")
-df_3273 <- read_rds("df_3273.rds")
-df_3277 <- read_rds("df_3277.rds")
-df_3279 <- read_rds("df_3279.rds")
-df_3281 <- read_rds("df_3281.rds")
+source("Scripts/Cargar_datos.R")
 
 #------------------Generate pooled data---------------------------------------
 

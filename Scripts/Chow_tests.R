@@ -1,30 +1,8 @@
 #-----------------Start up------------------------------------------
-#3269:Postelectoral
-#3271:Enero
-#3273:Febrero
-#3277:Marzo
-#3279:Abril
-#3281:Mayo
 
 #Loading all the necessary packages and datasets
 source("Scripts/Cargar_datos.R")
-#definimos las variables a utilizar
-vars <- rlang::quo(c(id, Periodo, 
-                     eval_pres, 
-                     ideol_GMC, ideol_2, ideol_3,
-                     man, higher_educ, welloff,
-                     PESO
-)
-)
 
-# recogemos los nombres de nuestros data frame nombrados según patron df_
-dfs <- ls(pattern = "df_")
-
-# para cada nombre lo asignamos a su objeto y seleccionamos las variables
-for (i in seq_along(dfs)){
-  assign(dfs[i], value = get(dfs[i]) %>% select(!!vars))
-}
-rm(list=c("vars", "dfs"))
 #-----------------Several models of relations between DV and IV--------------
 mod0 <- "eval_pres~man+higher_educ+welloff"
 mod1 <- "eval_pres~ideol_GMC + man+higher_educ+welloff"

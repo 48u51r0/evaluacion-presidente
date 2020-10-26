@@ -13,8 +13,9 @@ source("Scripts/Cargar_datos.R")
 
 mod_vacio <- "eval_pres ~ man + higher_educ+ welloff"
 mod_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
+mod_partidismo <- "eval_pres ~ partidismo_1 + man + higher_educ + welloff"
 mod_ideologia <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
-mod_completo <- "eval_pres ~ RV*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff"
+mod_completo <- "eval_pres ~ partidismo_1*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff"
 
 datos <- bind_rows(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
 # ponderamos los pesos de cada dataset por la contribucion de cada
@@ -33,18 +34,23 @@ datos <- datos %>%
          w = PESO * ponderacion)
 
 `Vacío` <- lmrob(mod_vacio,
-               data = datos,
-               subset = Periodo ==5,
-            weights = w)
+                 data = df_3271) #,
+                 # weights = w)
 Voto <- lmrob(mod_voto,
-               data = datos,
-               weights = w)
+              data = df_3271)#,
+              #weights = w)
+Partidismo <- lmrob(mod_partidismo,
+                 data=df_3271)#,
+                 #weights = w)
 `Ideología` <- lmrob(mod_ideologia,
-                     data = datos,
-                     weights = w)
-Completo <- lmrob(eval_pres ~ RV*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff,
-               data = datos,
-               weights = w)
+                     data = df_3271)#,
+                     #weights = w)
+Completo <- lmrob(eval_pres ~ RV + ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff,
+                  data = df_3271)#,
+                  #weights = w)
+Completo2 <- lmrob(eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + partidismo_1 +man+higher_educ+welloff,
+                  data = df_3271)#,
+                  #weights = w)
 #-----------------Summary------------------------------------------------------
 
 # cambiamos los nombres de los coeficientes de las regresiones para que 
@@ -71,3 +77,13 @@ stargazer(`Vacío`, `Ideología`, Voto, Completo, type = "text",
           intercept.bottom = FALSE, model.names = TRUE,
           object.names = TRUE, model.numbers = FALSE,
           out = "tresmodelos.html")
+
+
+# utilizaremos este y el dots and whiskers 
+# https://mran.microsoft.com/snapshot/2015-08-06/web/packages/dotwhisker/vignettes/dwplot-vignette.html 
+stargazer(Vacío, `Ideología`, Voto, Completo, type = "text", 
+          intercept.bottom = FALSE, model.names = TRUE,
+          object.names = TRUE, model.numbers = FALSE,
+          star.char = c("*", "**", "***"),
+          star.cutoffs = c(.05, .01, .001))
+

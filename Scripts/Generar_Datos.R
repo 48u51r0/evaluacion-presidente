@@ -37,8 +37,6 @@ write_rds(backup_3277, "backup_3277.rds")
 write_rds(backup_3279, "backup_3279.rds")
 write_rds(backup_3281, "backup_3281.rds")
 
-#----------Generar los dataframe de cada estudio-----------------------------------------
-
 # 1. Poselectoral------------------------------------------------------------------------
 df_3269 <- read_rds("backup_3269.rds") %>% 
   mutate(id = as.numeric( 
@@ -574,7 +572,7 @@ df_3281 <- read_rds("backup_3281.rds") %>%
            labels = c("No leal", "Leal")
     ) %>% relevel(1)
   ) %>% 
-  write_rds("df_3281.rds")
+  write_rds("./data/df_3281.rds")
 #---------------Eliminamos objetos del Global Environment---------------------------------------
 rm(list=c(ls(pattern = "backup_"), ls(pattern = "df_")))
 
