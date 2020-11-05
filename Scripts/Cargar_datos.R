@@ -2,11 +2,11 @@
 # loading library of functions 
 source("Scripts/libs.R")
 
-# Specify and install all the necessary packages
+# Install all the necessary packages
 packages <- (c("weights","haven", "sandwich", "multcomp", "emmeans", 
                "tidyverse", "conflicted", "ggeffects", "splines",
                "robustbase", "stargazer", "vistime",
-               "ggrepel", "scales"))
+               "ggrepel", "scales", "lmtest"))
 install_pack(packages)
 
 # Solve conflicts between packages 
@@ -22,13 +22,13 @@ vars <- rlang::quo(c(id, Periodo,
                      RV, partidismo_1, partidismo_2,
                      man, higher_educ, welloff,
                      PESO)
-                   )
+)
 
 # recogemos los nombres de nuestros data frame nombrados según patron df_
 dfs <- ls(pattern = "df_")
 
 # para cada nombre lo asignamos a su objeto y seleccionamos las variables
-for (i in seq_along(dfs)){
+for (i in seq_along(dfs)) {
   assign(dfs[i],
          # get toma un string nombre de un objeto y lo transforma en dicho objeto
          value = get(dfs[i]) %>% 
@@ -36,11 +36,12 @@ for (i in seq_along(dfs)){
            select(!!vars) %>%  
            # elimina las columnas que solo contiene NA
            select_if(~!all(is.na(.))) %>%
-           # elimina las filas con algún
+           # elimina las filas con algún NA
            drop_na()
-    )
+         )
+  
 }
 
 # Clean auxiliary functions(lsf.str) and objects
-rm(list = c(lsf.str(), "packages","vars", "dfs"))
+rm(list = c(lsf.str(), "packages","vars", "dfs", "i"))
 

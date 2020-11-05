@@ -170,6 +170,7 @@ chow(pre = df_pre, post = df_post, formula = mod3, significance = 0.01)#CAmbio. 
 #The unrestricted model will be:
 mod3_unrestr <- "eval_pres ~ breakpoint*ideol_GMC + breakpoint*ideol_2 + 
 breakpoint*ideol_3 + man + higher_educ + welloff"
+
 #the idea is to infer a "joint hypothesis" test of multiple restrictions.
 #This joint hypothesis will be: all coefficients for terms containing the dummy
 #are equal to 0. Thus, the restricted model will be:

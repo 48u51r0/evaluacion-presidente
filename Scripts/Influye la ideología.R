@@ -13,9 +13,9 @@ source("Scripts/Cargar_datos.R")
 
 mod_vacio <- "eval_pres ~ man + higher_educ+ welloff"
 mod_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
-mod_partidismo <- "eval_pres ~ partidismo_1 + man + higher_educ + welloff"
-mod_ideologia <- "eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff"
-mod_completo <- "eval_pres ~ partidismo_1*(ideol_GMC + ideol_2 + ideol_3) + man+higher_educ+welloff"
+#mod_partidismo <- "eval_pres ~ partidismo_1 + man + higher_educ + welloff"
+mod_ideologia <- "eval_pres ~ ideol_GMC + man+higher_educ+welloff"
+mod_completo <- "eval_pres ~ RV*(ideol_GMC ) + man+higher_educ+welloff"
 
 datos <- bind_rows(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
 # ponderamos los pesos de cada dataset por la contribucion de cada
@@ -33,24 +33,21 @@ datos <- datos %>%
                                  Periodo == 6 ~ aux[6]),
          w = PESO * ponderacion)
 
-`Vacío` <- lmrob(mod_vacio,
-                 data = df_3271) #,
-                 # weights = w)
-Voto <- lmrob(mod_voto,
-              data = df_3271)#,
-              #weights = w)
-Partidismo <- lmrob(mod_partidismo,
-                 data=df_3271)#,
-                 #weights = w)
-`Ideología` <- lmrob(mod_ideologia,
-                     data = df_3271)#,
-                     #weights = w)
-Completo <- lmrob(eval_pres ~ RV + ideol_GMC + ideol_2 + ideol_3 + man+higher_educ+welloff,
-                  data = df_3271)#,
-                  #weights = w)
-Completo2 <- lmrob(eval_pres ~ ideol_GMC + ideol_2 + ideol_3 + partidismo_1 +man+higher_educ+welloff,
-                  data = df_3271)#,
-                  #weights = w)
+`Vacío` <- lm(mod_vacio,
+                 data = df_3277,
+                 weights = PESO)
+Voto <- lm(mod_voto,
+              data = df_3277,
+              weights = PESO)
+`Ideología` <- lm(mod_ideologia,
+                     data = df_3277,
+                     weights = PESO)
+Completo <- lm(mod_completo,
+                  data = df_3277,
+                  weights = PESO)
+Completo2 <- lm(eval_pres ~ RV*poly(ideol_GMC, 3) + man+higher_educ+welloff,
+                  data = df_3277,
+                weights = PESO)
 #-----------------Summary------------------------------------------------------
 
 # cambiamos los nombres de los coeficientes de las regresiones para que 
@@ -81,9 +78,55 @@ stargazer(`Vacío`, `Ideología`, Voto, Completo, type = "text",
 
 # utilizaremos este y el dots and whiskers 
 # https://mran.microsoft.com/snapshot/2015-08-06/web/packages/dotwhisker/vignettes/dwplot-vignette.html 
-stargazer(Vacío, `Ideología`, Voto, Completo, type = "text", 
+vacio <- coeftest(`Vacío`, vcov. = vcovHC(`Vacío`, type = "HC0"))
+ideologia <- coeftest(Ideología, vcov. = vcovHC(Ideología, type = "HC0"))
+voto <- coeftest(Voto, vcov. = vcovHC(Voto, type = "HC0"))
+completo <- coeftest(Completo, vcov. = vcovHC(Completo, type = "HC0"))
+completo2 <- coeftest(Completo2, vcov. = vcovHC(Completo2, type = "HC0"))
+
+#adaptamos la salida de stargazer 
+#https://www.jakeruss.com/cheatsheets/stargazer/#robust-standard-errors-replicating-statas-robust-option
+stargazer(vacio, ideologia, voto, completo, type = "text", 
           intercept.bottom = FALSE, model.names = TRUE,
           object.names = TRUE, model.numbers = FALSE,
           star.char = c("*", "**", "***"),
           star.cutoffs = c(.05, .01, .001))
 
+Completo %>% ggpredict(c("ideol_GMC[all]", "RV"), 
+                       vcov.fun = "vcovHC", 
+                       vcov.type = "HC0") %>% 
+  filter(!group %in% c("Otros", "MP", "Cs", "Vox")) %>%
+  mutate(group = fct_drop(group)) %>% 
+  ggplot(aes(x=x, 
+             y=predicted, 
+             group = group)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, 
+                  ymax = conf.high), 
+              alpha = .3, 
+              colour = NA) +
+  guides(color = FALSE,
+         size = FALSE) +
+  theme(legend.title = element_blank()) +
+  facet_wrap(~group) +
+  labs(x = "Autoubicación ideológica centrada en la media",
+       y = "Valoración Presidente (1-10)") +
+  theme(legend.background = element_rect(fill = "white", 
+                                         colour = NA),
+        panel.background = element_blank(),
+        panel.border =element_rect(colour = "black", 
+                                   fill = NA, 
+                                   size = 1),
+        #panel.grid.major = element_line(colour = "lightgrey", 
+        #                                size = .15),
+        panel.grid.major = element_blank(),
+        strip.background = element_rect(color = "black", 
+                                        fill = "white", 
+                                        size = 1, 
+                                        linetype = "solid"),
+        strip.text.x = element_text(size = 12, 
+                                    face = "bold"),
+        axis.title=element_text(size=14)
+  )+
+  coord_fixed(ratio = 1)+
+  ylim(0,10)
