@@ -27,3 +27,15 @@ load_data <- function(start_w){
            envir = .GlobalEnv)
   }
 }
+# Get Sandwich variance-covariance estimation----------------------------------
+varcov_sandwich <- function(model, sandwich_type = "HC0"){
+  aux <- bptest(model)$p.value
+  if (aux <= .05) 
+    coeftest(model,
+             vcov. = (vcovHC(model,
+                             type = sandwich_type)
+                      )
+    ) %>% tidy()
+  else 
+    cat("The model is Homoscedatic")
+}
