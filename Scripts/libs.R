@@ -35,7 +35,7 @@ varcov_sandwich <- function(model, sandwich_type = "HC0"){
              vcov. = (vcovHC(model,
                              type = sandwich_type)
                       )
-    ) %>% tidy()
+    )
   else 
     cat("The model is Homoscedatic")
 }

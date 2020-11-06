@@ -6,7 +6,7 @@ source("Scripts/libs.R")
 packages <- (c("weights","haven", "sandwich", "multcomp", "emmeans", 
                "tidyverse", "conflicted", "ggeffects", "splines",
                "robustbase", "stargazer", "vistime",
-               "ggrepel", "scales", "lmtest"))
+               "ggrepel", "scales", "lmtest", "dotwhisker"))
 install_pack(packages)
 
 # Solve conflicts between packages 
@@ -43,5 +43,5 @@ for (i in seq_along(dfs)) {
 }
 
 # Clean auxiliary functions(lsf.str) and objects
-rm(list = c(lsf.str(), "packages","vars", "dfs", "i"))
+rm(list = c("packages","vars", "dfs", "i"))
 

@@ -1,4 +1,4 @@
-#-----------------Start up------------------------------------------
+# Start up------------------------------------------
 #3269:Postelectoral
 #3271:Enero
 #3273:Febrero
@@ -9,75 +9,154 @@
 #Loading all the necessary packages and datasets
 source("Scripts/Cargar_datos.R")
 
-#-----------------Planteamiento de modelos-------------------------------------
+# Planteamiento de modelos-------------------------------------
 
-mod_vacio <- "eval_pres ~ man + higher_educ+ welloff"
-mod_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
-#mod_partidismo <- "eval_pres ~ partidismo_1 + man + higher_educ + welloff"
-mod_ideologia <- "eval_pres ~ ideol_GMC + man+higher_educ+welloff"
-mod_completo <- "eval_pres ~ RV*(ideol_GMC ) + man+higher_educ+welloff"
+# Fórmulas para los modelos
+f_vacio <- "eval_pres ~ man + higher_educ+ welloff"
+f_voto <- "eval_pres ~ RV + man + higher_educ + welloff"
+f_ideologia <- "eval_pres ~ ideol_pers + man+higher_educ+welloff"
+f_adicion <-  "eval_pres ~ RV + ideol_pers + man+higher_educ+welloff"
+f_interaccion <- "eval_pres ~ RV*ideol_pers + man+higher_educ+welloff"
 
-datos <- bind_rows(df_3269, df_3271, df_3273, df_3277, df_3279, df_3281)
-# ponderamos los pesos de cada dataset por la contribucion de cada
-# conjunto de datos al total
-aux <- numeric()
-for (i in 1:6) {
-  aux[i] <- sum(datos$PESO[datos$Periodo== i])/(sum(datos$PESO))
+# wrapper de lm para no ser verbose
+regresion <- function(formula){
+  expresion <- as.formula(formula)
+  lm(expresion,
+     data =df_3277, 
+     weights = PESO)
 }
-datos <- datos %>% 
-  mutate(ponderacion = case_when(Periodo == 1 ~ aux[1],
-                                 Periodo == 2 ~ aux[2],
-                                 Periodo == 3 ~ aux[3],
-                                 Periodo == 4 ~ aux[4],
-                                 Periodo == 5 ~ aux[5],
-                                 Periodo == 6 ~ aux[6]),
-         w = PESO * ponderacion)
 
-`Vacío` <- lm(mod_vacio,
-                 data = df_3277,
-                 weights = PESO)
-Voto <- lm(mod_voto,
-              data = df_3277,
-              weights = PESO)
-`Ideología` <- lm(mod_ideologia,
-                     data = df_3277,
-                     weights = PESO)
-Completo <- lm(mod_completo,
-                  data = df_3277,
-                  weights = PESO)
-Completo2 <- lm(eval_pres ~ RV*poly(ideol_GMC, 3) + man+higher_educ+welloff,
-                  data = df_3277,
-                weights = PESO)
-#-----------------Summary------------------------------------------------------
+# funciones para aplicar a todos los modelos
+prepara_modelo <-  . %>%   
+  varcov_sandwich() %>% 
+  tidy() 
+filtrar <- . %>% 
+  filter(!term %in% c("(Intercept)", 
+                      "manHombre",
+                      "higher_educUniversitario", 
+                      "welloffMedio-alto")
+  )
 
-# cambiamos los nombres de los coeficientes de las regresiones para que 
-# salgan correctamente en el output
-names(`Vacío`$coefficients)[1]<- "Intercepto"
-names(`Vacío`$coefficients)[2]<- "Hombre"
-names(`Vacío`$coefficients)[3]<- "No universitario"
-names(`Vacío`$coefficients)[4]<- "No acomodado"
+# Inicializamos los modelos (utiles para stargazer)----------------------------
+voto <- regresion(f_voto)
+ideologia <- regresion(f_ideologia)
+adicion <- regresion(f_adicion)
+interaccion <- regresion(f_interaccion)
 
-names(Simple$coefficients)[1]<- "Intercepto"
-names(Simple$coefficients)[2]<- "Ideología"
-names(Simple$coefficients)[3]<- "Hombre"
-names(Simple$coefficients)[4]<- "No universitario"
-names(Simple$coefficients)[5]<- "No acomodado"
+# Preparamos los modelos para gráfico dots & whiskers--------------------------
+# Primero tidy y luego filtrado para poder usarlo en stargazer
+t_voto <- voto %>%  prepara_modelo() 
+t_ideologia <- ideologia %>% prepara_modelo() 
+t_adicion <- adicion %>% prepara_modelo() 
+t_interaccion <- interaccion %>% prepara_modelo() 
 
-names(Completo$coefficients)[1]<- "Intercepto"
-names(Completo$coefficients)[2]<- "Ideología"
-names(Completo$coefficients)[3]<- "Ideología (cuadrático)"
-names(Completo$coefficients)[4]<- "Ideología (cúbico)"
-names(Completo$coefficients)[5]<- "Hombre"
-names(Completo$coefficients)[6]<- "No universitario"
-names(Completo$coefficients)[7]<- "No acomodado"
-stargazer(`Vacío`, `Ideología`, Voto, Completo, type = "text", 
-          intercept.bottom = FALSE, model.names = TRUE,
-          object.names = TRUE, model.numbers = FALSE,
-          out = "tresmodelos.html")
+m_voto <- t_voto %>% filtrar() 
+m_ideologia <- t_ideologia %>% filtrar()
+m_adicion <- t_adicion %>% filtrar() 
+m_interaccion <- t_interaccion %>% filtrar() 
+
+# Todo modelo con las mismas variables y en el mismo orden
+# ncol(m_ideologia)-1 = 4
+m_voto <- rbind(m_voto, 
+                c("ideol_pers", rep(NA_real_, 4)),
+                c("RVPP:ideol_pers", rep(NA_real_, 4)),
+                c("RVPSOE:ideol_pers", rep(NA_real_, 4)),
+                c("RVCs:ideol_pers", rep(NA_real_, 4)),
+                c("RVUP:ideol_pers", rep(NA_real_, 4)),
+                c("RVMP:ideol_pers", rep(NA_real_, 4)),
+                c("RVVOX:ideol_pers", rep(NA_real_, 4))
+)
+m_ideologia <- rbind(c("RVPP", rep(NA, 4)),
+                     c("RVPSOE", rep(NA, 4)),
+                     c("RVCs", rep(NA, 4)),
+                     c("RVUP", rep(NA, 4)),
+                     c("RVMP", rep(NA, 4)),
+                     c("RVVOX", rep(NA, 4)),
+                     m_ideologia,
+                     c("RVPP:ideol_pers", rep(NA, 4)),
+                     c("RVPSOE:ideol_pers", rep(NA, 4)),
+                     c("RVCs:ideol_pers", rep(NA, 4)),
+                     c("RVUP:ideol_pers", rep(NA, 4)),
+                     c("RVMP:ideol_pers", rep(NA, 4)),
+                     c("RVVOX:ideol_pers", rep(NA, 4))
+)
+m_adicion <- rbind(m_adicion,
+                   c("RVPP:ideol_pers", rep(NA, 4)),
+                   c("RVPSOE:ideol_pers", rep(NA, 4)),
+                   c("RVCs:ideol_pers", rep(NA, 4)),
+                   c("RVUP:ideol_pers", rep(NA, 4)),
+                   c("RVMP:ideol_pers", rep(NA, 4)),
+                   c("RVVOX:ideol_pers", rep(NA, 4))
+)
 
 
-# utilizaremos este y el dots and whiskers 
-# https://mran.microsoft.com/snapshot/2015-08-06/web/packages/dotwhisker/vignettes/dwplot-vignette.html 
+# Funcion para Reetiquetar los coeficientes
+reetiquetar <- . %>% 
+  relabel_predictors(c(RVPP = "PP",
+                       RVPSOE = "PSOE",
+                       RVCs = "Cs",
+                       RVUP = "UP",
+                       RVMP = "MP",
+                       RVVOX = "VOX",
+                       ideol_pers = "Ubicación",
+                       `RVPP:ideol_pers` = "Ubic. * PP",
+                       `RVPSOE:ideol_pers` = "Ubic. * PSOE",
+                       `RVCs:ideol_pers` = "Ubic. * Cs",
+                       `RVUP:ideol_pers` = "Ubic. * UP",
+                       `RVMP:ideol_pers` = "Ubic. * MP",
+                       `RVVOX:ideol_pers` = "Ubic. * VOX")
+  )
+
+m_voto <- m_voto %>% 
+  # Añadimos un identificador de modelo
+  mutate(model = "Recuerdo voto") %>% 
+  # reconvertimos en numerica las vars que rbind ha hecho char
+  mutate_at(2:5, as.numeric) %>% 
+  reetiquetar()
+
+m_ideologia <- m_ideologia %>% 
+  mutate(model = "Ubicación D-I") %>% 
+  mutate_at(2:5, as.numeric) %>% 
+  reetiquetar()
+
+m_adicion <- m_adicion %>% 
+  mutate(model = "Aditivo") %>% 
+  mutate_at(2:5, as.numeric) %>% 
+  reetiquetar()
+
+m_interaccion <- m_interaccion %>% 
+  mutate(model = "Interacción") %>% 
+  mutate_at(2:5, as.numeric) %>% 
+  reetiquetar()
+
+m <- rbind(m_voto, m_ideologia, m_adicion, m_interaccion)
+
+# Ploteamos el dots and whiskers-----------------------------------------------
+# https://mran.microsoft.com/snapshot/2015-08-06/web/packages/dotwhisker/
+# vignettes/dwplot-vignette.html 
+dwplot(m, dodge_size = .5,
+       vline = geom_vline(xintercept = 0, 
+                          colour = "grey60", 
+                          linetype = 2),
+       dot_args = list(aes(shape = model,color=model)),
+       whisker_args = list(aes(color = model)))+
+  scale_color_grey(end = .6)+
+  theme_bw() + 
+  xlab("Estimación") + 
+  ylab("") +
+  labs(color = "Modelo", shape = "Modelo")+
+  theme(legend.background = element_rect(colour="grey80"),
+        legend.title = element_text(face = "bold"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())  
+
+# Tabla resumen de los modelos de regresión------------------------------------
+# https://www.jakeruss.com/cheatsheets/stargazer
+# /#robust-standard-errors-replicating-statas-robust-option
+
+
+
+
 vacio <- coeftest(`Vacío`, vcov. = vcovHC(`Vacío`, type = "HC0"))
 ideologia <- coeftest(Ideología, vcov. = vcovHC(Ideología, type = "HC0"))
 voto <- coeftest(Voto, vcov. = vcovHC(Voto, type = "HC0"))
@@ -85,14 +164,14 @@ completo <- coeftest(Completo, vcov. = vcovHC(Completo, type = "HC0"))
 completo2 <- coeftest(Completo2, vcov. = vcovHC(Completo2, type = "HC0"))
 
 #adaptamos la salida de stargazer 
-#https://www.jakeruss.com/cheatsheets/stargazer/#robust-standard-errors-replicating-statas-robust-option
-stargazer(vacio, ideologia, voto, completo, type = "text", 
+
+stargazer(voto, ideologia, adicion, interaccion, type = "text", 
           intercept.bottom = FALSE, model.names = TRUE,
-          object.names = TRUE, model.numbers = FALSE,
+          object.names = FALSE, model.numbers = FALSE,
           star.char = c("*", "**", "***"),
           star.cutoffs = c(.05, .01, .001))
 
-Completo %>% ggpredict(c("ideol_GMC[all]", "RV"), 
+Completo %>% ggpredict(c("ideol_pers[all]", "RV"), 
                        vcov.fun = "vcovHC", 
                        vcov.type = "HC0") %>% 
   filter(!group %in% c("Otros", "MP", "Cs", "Vox")) %>%
